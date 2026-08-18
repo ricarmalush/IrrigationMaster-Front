@@ -1,0 +1,125 @@
+#pantalla-login-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-width: 100vw;
+    background-color: #f8f9fa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    /* 1. Recuperamos el ancho elegante original */
+    .login-card {
+        width: 100%;
+        max-width: 550px; /* <--- Subido a 550px para dar más amplitud */
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+    }
+
+    .login-header h2 {
+        color: #0f172a;
+        font-size: 2.25rem;
+        font-weight: 600;
+    }
+
+    /* 2. Añadimos separación vertical para que los campos respiren */
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem; /* Separación homogénea entre bloques */
+    }
+
+    .field-group {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem; /* Separación entre la etiqueta y el input */
+
+        label {
+            color: #000000;
+            font-weight: 600;
+            margin: 0;
+        }
+    }
+
+    .login-utilities {
+        width: 100%;
+
+        .remember-me {
+            color: #334155;
+            font-weight: 500;
+        }
+        .forgot-password {
+            color: #00bfa5;
+            font-weight: 600;
+            &:hover {
+                color: #009688;
+                text-decoration: underline;
+            }
+        }
+    }
+
+    /* INJECCIÓN PROFUNDA REESTRUCTURADA */
+    ::ng-deep {
+
+        /* Asegura que el cálculo de tamaño incluya paddings y bordes hacia adentro */
+        #pantalla-login-custom {
+            .p-inputtext, .p-password, .p-password input {
+                box-sizing: border-box !important;
+            }
+        }
+
+        /* 1. INPUT DE CORREO NATIVO */
+        #pantalla-login-custom input[pInputText] {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.85rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+
+            &:focus {
+                border-color: #00bfa5;
+                box-shadow: 0 0 0 2px rgba(0, 191, 165, 0.2);
+            }
+        }
+
+        /* 2. COMPONENTE DE CONTRASEÑA DE PRIMENG */
+        #pantalla-login-custom .p-password {
+            display: block !important;
+            width: 100% !important;
+
+            input {
+                width: 100% !important;
+                padding: 0.85rem 1rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+            }
+        }
+
+        /* 3. CHECKBOX */
+        #pantalla-login-custom .p-checkbox .p-checkbox-box {
+            border-radius: 6px;
+            &.p-highlight {
+                background: #00bfa5;
+                border-color: #00bfa5;
+            }
+        }
+
+        /* 4. BOTÓN DE ENVÍO */
+        #pantalla-login-custom .p-button {
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            background: #00bfa5;
+            border: none;
+            padding: 0.9rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            margin-top: 1rem;
+
+            &:hover {
+                background: #009688;
+            }
+        }
+    }
+}
