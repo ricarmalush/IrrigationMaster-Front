@@ -46,7 +46,10 @@ export const appRoutes: Routes = [
 
             // NIVEL 4: OPERATIONAL
             // { path: 'valves', loadComponent: () => import('./app/features/level4-operational/valves/pages/valves/valves.component').then(c => c.ValvesComponent) },
-            { path: 'irrigation-turns/approve', component: ComingSoonComponent, data: { title: 'Aprobar Turnos' } },
+            {
+                path: 'irrigation-turns/approve',
+                loadComponent: () => import('./app/features/level4-operational/irrigation-turns/pages/turn-approval-list/turn-approval-list.component').then((c) => c.TurnApprovalListComponent)
+            },
             { path: 'irrigation-status', component: ComingSoonComponent, data: { title: 'Estado de Riego' } },
             // { path: 'sensors', loadComponent: () => import('./app/features/level4-operational/sensors/pages/sensors/sensors.component').then(c => c.SensorsComponent) },
 

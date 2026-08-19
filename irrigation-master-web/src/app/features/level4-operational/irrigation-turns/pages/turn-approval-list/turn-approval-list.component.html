@@ -1,0 +1,45 @@
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template pTemplate="start">
+            <h5 class="m-0">Aprobar Turnos</h5>
+        </ng-template>
+    </p-toolbar>
+
+    @if (!canApprove) {
+        <p-message severity="warn" text="No tienes permiso para aprobar turnos de riego." styleClass="mb-4 w-full"></p-message>
+    }
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <p-table [value]="turns()" [loading]="loading()" dataKey="id" [stripedRows]="true" [rowHover]="true" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Solicitante</th>
+                <th>Sector</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th style="width: 10rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-turn>
+            <tr>
+                <td>{{ turn.requesterFullName }}</td>
+                <td>{{ sectorName(turn.hydraulicSectorId) }}</td>
+                <td>{{ turn.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ turn.scheduledEnd | date: 'HH:mm' }}</td>
+                <td>
+                    @if (canApprove) {
+                        <button pButton type="button" label="Aprobar" icon="pi pi-check" [loading]="approvingId() === turn.id" (click)="approve(turn)"></button>
+                    }
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="5" class="text-center">No hay turnos pendientes de aprobar.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
