@@ -24,6 +24,8 @@
         (onLazyLoad)="onLazyLoad($event)"
         dataKey="id"
         [rowsPerPageOptions]="[10, 20, 50]"
+        [stripedRows]="true"
+        [rowHover]="true"
         responsiveLayout="scroll"
     >
         <ng-template pTemplate="header">
