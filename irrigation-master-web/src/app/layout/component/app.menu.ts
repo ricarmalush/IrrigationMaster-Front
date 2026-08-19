@@ -32,6 +32,10 @@ export class AppMenu {
                 { label: 'Sectores', icon: 'pi pi-fw pi-sitemap', routerLink: ['/hydraulic-sectors'] },
                 { label: 'Andadores', icon: 'pi pi-fw pi-directions', routerLink: ['/walkways'] }
             ]
+        },
+        {
+            label: 'Usuarios',
+            items: [{ label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/users'] }]
         }
     ];
 }

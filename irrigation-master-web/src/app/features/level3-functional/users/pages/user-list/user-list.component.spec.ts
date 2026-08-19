@@ -1,23 +1,129 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { of } from 'rxjs';
 
+import { AppUser } from '../../../../../shared/models/user.model';
+import { ListResult, OperationResult } from '../../../../../shared/models/result.model';
+import { UserService } from '../../services/user.service';
 import { UserListComponent } from './user-list.component';
 
+const activeUser: AppUser = {
+    id: 'user-1',
+    firstName: 'Ana',
+    lastName: 'García',
+    email: 'ana@example.com',
+    organizationId: 'org-1',
+    role: 'VECINO',
+    isActive: true,
+    fullName: 'Ana García',
+    created: '2026-01-01',
+    walkwayId: null,
+    walkwayCode: null,
+    organizationName: 'Comunidad'
+};
+
+const pendingUser: AppUser = { ...activeUser, id: 'user-2', isActive: false, fullName: 'Luis Pérez' };
+
 describe('UserListComponent', () => {
-  let component: UserListComponent;
-  let fixture: ComponentFixture<UserListComponent>;
+    let component: UserListComponent;
+    let fixture: ComponentFixture<UserListComponent>;
+    let userService: jasmine.SpyObj<UserService>;
+    let messageService: jasmine.SpyObj<MessageService>;
+    let confirmationService: jasmine.SpyObj<ConfirmationService>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [UserListComponent]
-    })
-    .compileComponents();
+    beforeEach(() => {
+        userService = jasmine.createSpyObj('UserService', ['list', 'delete', 'activate']);
+        messageService = jasmine.createSpyObj('MessageService', ['add']);
+        confirmationService = jasmine.createSpyObj('ConfirmationService', ['confirm']);
 
-    fixture = TestBed.createComponent(UserListComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+        TestBed.configureTestingModule({
+            imports: [UserListComponent],
+            providers: [
+                provideRouter([]),
+                { provide: UserService, useValue: userService },
+                { provide: MessageService, useValue: messageService },
+                { provide: ConfirmationService, useValue: confirmationService }
+            ]
+        });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+        fixture = TestBed.createComponent(UserListComponent);
+        component = fixture.componentInstance;
+    });
+
+    it('should be created', () => {
+        expect(component).toBeTruthy();
+    });
+
+    describe('onLazyLoad()', () => {
+        it('loads a page and exposes the items/total on success', () => {
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [activeUser], totalCount: 1 }));
+
+            component.onLazyLoad({ first: 0, rows: 10 });
+
+            expect(userService.list).toHaveBeenCalledWith(1, 10, undefined);
+            expect(component.users()).toEqual([activeUser]);
+        });
+
+        it('shows an empty table (no error) when the page has no items', () => {
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
+
+            component.onLazyLoad({ first: 0, rows: 10 });
+
+            expect(component.users()).toEqual([]);
+            expect(component.errorMessage()).toBeNull();
+        });
+
+        it('surfaces the backend/network error message on failure', () => {
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: false, message: 'No se pudo establecer comunicación con el servidor.', items: [], totalCount: 0 }));
+
+            component.onLazyLoad({ first: 0, rows: 10 });
+
+            expect(component.errorMessage()).toBe('No se pudo establecer comunicación con el servidor.');
+        });
+    });
+
+    it('onActiveFilterChange(): resets to the first page and refetches with the selected filter', () => {
+        userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [pendingUser], totalCount: 1 }));
+        component.onLazyLoad({ first: 20, rows: 10 });
+
+        component.activeFilter.set(false);
+        component.onActiveFilterChange();
+
+        expect(userService.list).toHaveBeenCalledWith(1, 10, false);
+    });
+
+    describe('confirmDeactivate()', () => {
+        it('asks for confirmation, and on accept deactivates + reloads the list', () => {
+            userService.delete.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
+            confirmationService.confirm.and.callFake((c) => c.accept!());
+
+            component.confirmDeactivate(activeUser);
+
+            expect(userService.delete).toHaveBeenCalledWith('user-1');
+            expect(userService.list).toHaveBeenCalled();
+        });
+    });
+
+    describe('activate()', () => {
+        it('activates the user and reloads the list on success', () => {
+            userService.activate.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
+
+            component.activate(pendingUser);
+
+            expect(userService.activate).toHaveBeenCalledWith('user-2');
+            expect(userService.list).toHaveBeenCalled();
+        });
+
+        it('shows an error toast and does not reload when activation fails', () => {
+            userService.activate.and.returnValue(of<OperationResult<boolean>>({ isSuccess: false, message: 'No tienes permiso para aprobar usuarios.' }));
+
+            component.activate(pendingUser);
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No tienes permiso para aprobar usuarios.' }));
+            expect(userService.list).not.toHaveBeenCalled();
+        });
+    });
 });

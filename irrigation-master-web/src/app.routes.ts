@@ -35,6 +35,9 @@ export const appRoutes: Routes = [
             { path: 'walkways/:id', loadComponent: () => import('./app/features/level2-structure/walkways/pages/walkway-form/walkway-form.component').then((c) => c.WalkwayFormComponent) },
 
             // NIVEL 3: FUNCTIONAL
+            { path: 'users', loadComponent: () => import('./app/features/level3-functional/users/pages/user-list/user-list.component').then((c) => c.UserListComponent) },
+            { path: 'users/new', loadComponent: () => import('./app/features/level3-functional/users/pages/user-detail/user-detail.component').then((c) => c.UserDetailComponent) },
+            { path: 'users/:id', loadComponent: () => import('./app/features/level3-functional/users/pages/user-detail/user-detail.component').then((c) => c.UserDetailComponent) },
             // { path: 'plots', loadComponent: () => import('./app/features/level3-functional/plots/pages/plots/plots.component').then(c => c.PlotsComponent) },
             // { path: 'irrigation-programs', loadComponent: () => import('./app/features/level3-functional/irrigation-programs/pages/irrigation-programs/irrigation-programs.component').then(c => c.IrrigationProgramsComponent) },
 
