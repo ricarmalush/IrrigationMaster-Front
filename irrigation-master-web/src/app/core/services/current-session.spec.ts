@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { CurrentSessionService } from './current-session';
 
-const ROLE_CLAIM = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role';
+const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 
 function base64Url(value: string): string {
     return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -108,5 +108,35 @@ describe('CurrentSessionService', () => {
         expect(service.getUserId()).toBeNull();
         expect(service.getOrganizationId()).toBeNull();
         expect(service.getRole()).toBeNull();
+    });
+
+    describe('role signal (para consumidores que se construyen una sola vez, como AppMenu)', () => {
+        it('starts as null when there is nothing established', () => {
+            expect(service.role()).toBeNull();
+        });
+
+        it('updates the moment establish() runs, without needing a new getRole() call', () => {
+            const token = buildToken({ sub: userId, organizationId, [ROLE_CLAIM]: role });
+
+            service.establish(token);
+
+            expect(service.role()).toBe(role);
+        });
+
+        it('stays in sync with getRole() after establish()', () => {
+            const token = buildToken({ sub: userId, organizationId, [ROLE_CLAIM]: role });
+            service.establish(token);
+
+            expect(service.role()).toBe(service.getRole());
+        });
+
+        it('resets to null on clear()', () => {
+            const token = buildToken({ sub: userId, organizationId, [ROLE_CLAIM]: role });
+            service.establish(token);
+
+            service.clear();
+
+            expect(service.role()).toBeNull();
+        });
     });
 });

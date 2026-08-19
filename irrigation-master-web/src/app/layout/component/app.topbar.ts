@@ -1,10 +1,14 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ButtonModule } from 'primeng/button';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '@/app/layout/service/layout.service';
+import { AuthService } from '@/app/core/services/auth';
+import { CurrentSessionService } from '@/app/core/services/current-session';
+import { UserService } from '@/app/features/level3-functional/users/services/user.service';
 
 const THEME_ICONS: Record<string, string> = {
     light: 'pi-sun',
@@ -18,10 +22,17 @@ const THEME_LABELS: Record<string, string> = {
     dark: 'Tema oscuro'
 };
 
+const ROLE_LABELS: Record<string, string> = {
+    SUPERADMIN: 'Super Administrador',
+    PRESIDENTE: 'Presidente',
+    VICEPRESIDENTE: 'Vicepresidente',
+    VECINO: 'Vecino'
+};
+
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, ButtonModule, AppConfigurator],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
             <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -68,6 +79,29 @@ const THEME_LABELS: Record<string, string> = {
                     </button>
                     <app-configurator />
                 </div>
+                <div class="relative">
+                    <button
+                        type="button"
+                        class="layout-topbar-action"
+                        pStyleClass="@next"
+                        enterFromClass="hidden"
+                        enterActiveClass="animate-scalein"
+                        leaveToClass="hidden"
+                        leaveActiveClass="animate-fadeout"
+                        [hideOnOutsideClick]="true"
+                    >
+                        <i class="pi pi-user"></i>
+                    </button>
+                    <div
+                        class="hidden absolute top-13 right-0 w-64 p-4 bg-surface-0 dark:bg-surface-900 border border-surface rounded-border origin-top shadow-[0px_3px_5px_rgba(0,0,0,0.02),0px_0px_2px_rgba(0,0,0,0.05),0px_1px_4px_rgba(0,0,0,0.08)]"
+                    >
+                        <div class="flex flex-col gap-1 mb-4">
+                            <span class="font-semibold">{{ displayName() || 'Cargando...' }}</span>
+                            <span class="text-sm text-muted-color">{{ roleLabel() }}</span>
+                        </div>
+                        <button pButton type="button" label="Cerrar sesión" icon="pi pi-sign-out" severity="secondary" class="w-full" (click)="logout()"></button>
+                    </div>
+                </div>
             </div>
 
             <button class="layout-topbar-menu-button layout-topbar-action" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true">
@@ -84,20 +118,42 @@ const THEME_LABELS: Record<string, string> = {
                         <i class="pi pi-inbox"></i>
                         <span>Messages</span>
                     </button>
-                    <button type="button" class="layout-topbar-action">
-                        <i class="pi pi-user"></i>
-                        <span>Profile</span>
-                    </button>
                 </div>
             </div>
         </div>
     </div>`
 })
-export class AppTopbar {
+export class AppTopbar implements OnInit {
     items!: MenuItem[];
 
     layoutService = inject(LayoutService);
+    private userService = inject(UserService);
+    private currentSession = inject(CurrentSessionService);
+    private authService = inject(AuthService);
 
     themeIcon = computed(() => THEME_ICONS[this.layoutService.layoutConfig().theme]);
     themeLabel = computed(() => THEME_LABELS[this.layoutService.layoutConfig().theme]);
+
+    readonly displayName = signal<string | null>(null);
+    readonly roleLabel = computed(() => {
+        const role = this.currentSession.role();
+        return role ? (ROLE_LABELS[role] ?? role) : '';
+    });
+
+    ngOnInit(): void {
+        const userId = this.currentSession.getUserId();
+        if (!userId) {
+            return;
+        }
+
+        this.userService.getById(userId).subscribe((result) => {
+            if (result.isSuccess && result.data) {
+                this.displayName.set(result.data.fullName);
+            }
+        });
+    }
+
+    logout(): void {
+        this.authService.logout();
+    }
 }
