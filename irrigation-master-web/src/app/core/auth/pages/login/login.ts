@@ -36,19 +36,18 @@ export class Login {
             return;
         }
 
-        this.authService.login(this.email, this.password).subscribe({
-            next: () => {
+        this.authService.login(this.email, this.password).subscribe((result) => {
+            if (result.isSuccess) {
                 this.router.navigate(['/']);
-            },
-            error: (err) => {
-                console.error('Error al iniciar sesión:', err);
-                Swal.fire({
-                    title: 'Error de Autenticación',
-                    text: 'Credenciales incorrectas o error en el servidor',
-                    icon: 'error',
-                    confirmButtonColor: '#00bfa5'
-                });
+                return;
             }
+
+            Swal.fire({
+                title: 'Error de Autenticación',
+                text: result.message,
+                icon: 'error',
+                confirmButtonColor: '#00bfa5'
+            });
         });
     }
 }

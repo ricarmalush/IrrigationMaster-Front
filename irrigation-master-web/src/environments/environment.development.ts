@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5013/api',
+  apiUrl: 'https://pcn181v8-44384.euw.devtunnels.ms/api',
   appName: 'IrrigationMaster Web (Desarrollo)'
 };
