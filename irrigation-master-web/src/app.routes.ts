@@ -27,7 +27,9 @@ export const appRoutes: Routes = [
             { path: 'organizations', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organization-list/organization-list.component').then((c) => c.OrganizationListComponent) },
             { path: 'organizations/new', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organization-detail/organization-detail.component').then((c) => c.OrganizationDetailComponent) },
             { path: 'organizations/:id', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organization-detail/organization-detail.component').then((c) => c.OrganizationDetailComponent) },
-            // { path: 'hydraulic-sectors', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/hydraulic-sectors/hydraulic-sectors.component').then(c => c.HydraulicSectorsComponent) },
+            { path: 'hydraulic-sectors', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/sector-list/sector-list.component').then((c) => c.SectorListComponent) },
+            { path: 'hydraulic-sectors/new', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/sector-form/sector-form.component').then((c) => c.SectorFormComponent) },
+            { path: 'hydraulic-sectors/:id', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/sector-form/sector-form.component').then((c) => c.SectorFormComponent) },
 
             // NIVEL 3: FUNCTIONAL
             // { path: 'plots', loadComponent: () => import('./app/features/level3-functional/plots/pages/plots/plots.component').then(c => c.PlotsComponent) },

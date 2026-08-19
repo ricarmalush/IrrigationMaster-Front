@@ -27,7 +27,10 @@ export class AppMenu {
         },
         {
             label: 'Estructura',
-            items: [{ label: 'Organizaciones', icon: 'pi pi-fw pi-building', routerLink: ['/organizations'] }]
+            items: [
+                { label: 'Organizaciones', icon: 'pi pi-fw pi-building', routerLink: ['/organizations'] },
+                { label: 'Sectores', icon: 'pi pi-fw pi-sitemap', routerLink: ['/hydraulic-sectors'] }
+            ]
         }
     ];
 }
