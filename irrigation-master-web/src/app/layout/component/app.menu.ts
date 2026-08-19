@@ -5,7 +5,12 @@ import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
 import { CurrentSessionService } from '@/app/core/services/current-session';
 
-const BROADCAST_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
+// Mismos roles que ShowApproveTurns/ShowCommunityBroadcast en AdminMenuPage.xaml.cs de la App.
+const ADMIN_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
+const BROADCAST_ROLES = ADMIN_ROLES;
+// Mismos roles que ShowIrrigationPrograms en AdminMenuPage.xaml.cs (ligado al permiso de backend
+// MANAGE_IRRIGATION_PROGRAMS).
+const IRRIGATION_PROGRAM_ROLES = ['SUPERADMIN', 'COORDINADOR_RIEGO'];
 
 @Component({
     selector: 'app-menu',
@@ -55,10 +60,37 @@ export class AppMenu {
                     ? [{ label: 'Avisar a mi comunidad', icon: 'pi pi-fw pi-megaphone', routerLink: ['/notifications/community-broadcast'] }]
                     : [])
             ]
+        },
+        {
+            label: 'Riego',
+            items: [
+                { label: 'Estado de Riego', icon: 'pi pi-fw pi-chart-line', routerLink: ['/irrigation-status'] },
+                ...(this.canApproveTurns() ? [{ label: 'Aprobar Turnos', icon: 'pi pi-fw pi-check-square', routerLink: ['/irrigation-turns/approve'] }] : []),
+                ...(this.canManageIrrigationPrograms() ? [{ label: 'Calendario de Riego', icon: 'pi pi-fw pi-calendar', routerLink: ['/irrigation-programs'] }] : [])
+            ]
+        },
+        {
+            label: 'Notificaciones',
+            items: [{ label: 'Notificaciones', icon: 'pi pi-fw pi-bell', routerLink: ['/notifications'] }]
+        },
+        {
+            label: 'Sistema',
+            items: [{ label: 'Configuración del Sistema', icon: 'pi pi-fw pi-cog', routerLink: ['/system-settings'] }]
         }
     ]);
 
     private canBroadcast(): boolean {
         return BROADCAST_ROLES.includes(this.currentSession.role() ?? '');
+    }
+
+    // Espejo de ShowApproveTurns en AdminMenuPage.xaml.cs de la App.
+    private canApproveTurns(): boolean {
+        return ADMIN_ROLES.includes(this.currentSession.role() ?? '');
+    }
+
+    // Espejo de ShowIrrigationPrograms en AdminMenuPage.xaml.cs de la App: no es el mismo grupo
+    // de roles que "Aprobar Turnos" -- ahí es SUPERADMIN o COORDINADOR_RIEGO, no Presidente/Vice.
+    private canManageIrrigationPrograms(): boolean {
+        return IRRIGATION_PROGRAM_ROLES.includes(this.currentSession.role() ?? '');
     }
 }

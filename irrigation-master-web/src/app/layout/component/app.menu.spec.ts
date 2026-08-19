@@ -20,6 +20,11 @@ function broadcastItemVisible(component: AppMenu): boolean {
     return comunidad?.items?.some((i) => i.label === 'Avisar a mi comunidad') ?? false;
 }
 
+function itemVisible(component: AppMenu, groupLabel: string, itemLabel: string): boolean {
+    const group = component.model().find((g) => g.label === groupLabel);
+    return group?.items?.some((i) => i.label === itemLabel) ?? false;
+}
+
 describe('AppMenu', () => {
     let component: AppMenu;
     let fixture: ComponentFixture<AppMenu>;
@@ -82,5 +87,44 @@ describe('AppMenu', () => {
         currentSession.establish(buildToken('SUPERADMIN'));
 
         expect(broadcastItemVisible(component)).toBe(true);
+    });
+
+    describe('andamiaje de navegación (espejo de AdminMenuPage de la App)', () => {
+        it('always shows "Estado de Riego", "Notificaciones" and "Configuración del Sistema", regardless of role', () => {
+            expect(itemVisible(component, 'Riego', 'Estado de Riego')).toBe(true);
+            expect(itemVisible(component, 'Notificaciones', 'Notificaciones')).toBe(true);
+            expect(itemVisible(component, 'Sistema', 'Configuración del Sistema')).toBe(true);
+
+            currentSession.establish(buildToken('VECINO'));
+
+            expect(itemVisible(component, 'Riego', 'Estado de Riego')).toBe(true);
+            expect(itemVisible(component, 'Notificaciones', 'Notificaciones')).toBe(true);
+            expect(itemVisible(component, 'Sistema', 'Configuración del Sistema')).toBe(true);
+        });
+
+        it('hides "Aprobar Turnos" for a VECINO but shows it for SUPERADMIN/PRESIDENTE/VICEPRESIDENTE', () => {
+            currentSession.establish(buildToken('VECINO'));
+            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(false);
+
+            currentSession.establish(buildToken('SUPERADMIN'));
+            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(true);
+
+            currentSession.establish(buildToken('PRESIDENTE'));
+            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(true);
+
+            currentSession.establish(buildToken('VICEPRESIDENTE'));
+            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(true);
+        });
+
+        it('shows "Calendario de Riego" only for SUPERADMIN/COORDINADOR_RIEGO, not for PRESIDENTE', () => {
+            currentSession.establish(buildToken('PRESIDENTE'));
+            expect(itemVisible(component, 'Riego', 'Calendario de Riego')).toBe(false);
+
+            currentSession.establish(buildToken('SUPERADMIN'));
+            expect(itemVisible(component, 'Riego', 'Calendario de Riego')).toBe(true);
+
+            currentSession.establish(buildToken('COORDINADOR_RIEGO'));
+            expect(itemVisible(component, 'Riego', 'Calendario de Riego')).toBe(true);
+        });
     });
 });

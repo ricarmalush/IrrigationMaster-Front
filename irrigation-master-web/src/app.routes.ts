@@ -3,6 +3,7 @@ import { AppLayout } from './app/layout/component/app.layout';
 import { Dashboard } from './app/pages/dashboard/dashboard';
 import { Notfound } from './app/pages/notfound/notfound';
 import { authGuard } from './app/core/guards/auth.guard';
+import { ComingSoonComponent } from './app/shared/pages/coming-soon/coming-soon.component';
 
 export const appRoutes: Routes = [
     {
@@ -39,14 +40,16 @@ export const appRoutes: Routes = [
             { path: 'users/new', loadComponent: () => import('./app/features/level3-functional/users/pages/user-detail/user-detail.component').then((c) => c.UserDetailComponent) },
             { path: 'users/:id', loadComponent: () => import('./app/features/level3-functional/users/pages/user-detail/user-detail.component').then((c) => c.UserDetailComponent) },
             // { path: 'plots', loadComponent: () => import('./app/features/level3-functional/plots/pages/plots/plots.component').then(c => c.PlotsComponent) },
-            // { path: 'irrigation-programs', loadComponent: () => import('./app/features/level3-functional/irrigation-programs/pages/irrigation-programs/irrigation-programs.component').then(c => c.IrrigationProgramsComponent) },
+            { path: 'irrigation-programs', component: ComingSoonComponent, data: { title: 'Calendario de Riego' } },
 
             // NIVEL 4: OPERATIONAL
             // { path: 'valves', loadComponent: () => import('./app/features/level4-operational/valves/pages/valves/valves.component').then(c => c.ValvesComponent) },
-            // { path: 'irrigation-turns', loadComponent: () => import('./app/features/level4-operational/irrigation-turns/pages/irrigation-turns/irrigation-turns.component').then(c => c.IrrigationTurnsComponent) },
+            { path: 'irrigation-turns/approve', component: ComingSoonComponent, data: { title: 'Aprobar Turnos' } },
+            { path: 'irrigation-status', component: ComingSoonComponent, data: { title: 'Estado de Riego' } },
             // { path: 'sensors', loadComponent: () => import('./app/features/level4-operational/sensors/pages/sensors/sensors.component').then(c => c.SensorsComponent) },
 
             // NIVEL 5: EQUIPMENT
+            { path: 'notifications', component: ComingSoonComponent, data: { title: 'Notificaciones' } },
             {
                 path: 'notifications/report-incident',
                 loadComponent: () => import('./app/features/level5-equipment/notifications/pages/report-incident/report-incident.component').then((c) => c.ReportIncidentComponent)
@@ -56,7 +59,8 @@ export const appRoutes: Routes = [
                 loadComponent: () => import('./app/features/level5-equipment/notifications/pages/community-broadcast/community-broadcast.component').then((c) => c.CommunityBroadcastComponent)
             },
             // { path: 'invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoices/invoices.component').then(c => c.InvoicesComponent) },
-            // { path: 'audit-logs', loadComponent: () => import('./app/features/level5-equipment/audit-logs/pages/audit-logs/audit-logs.component').then(c => c.AuditLogsComponent) }
+            // { path: 'audit-logs', loadComponent: () => import('./app/features/level5-equipment/audit-logs/pages/audit-logs/audit-logs.component').then(c => c.AuditLogsComponent) },
+            { path: 'system-settings', component: ComingSoonComponent, data: { title: 'Configuración del Sistema' } }
         ]
     },
 
