@@ -5,11 +5,9 @@ import { catchError, map, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { Router } from '@angular/router';
 import { CurrentSessionService } from './current-session';
+import { NETWORK_ERROR_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../constants/service-messages';
 
-// Mismos mensajes de respaldo que usa la App MAUI (ServiceMessages.cs) para errores no
-// vinculados a un mensaje del backend, y así mantener la experiencia consistente entre plataformas.
-export const NETWORK_ERROR_MESSAGE = 'No se pudo establecer comunicación con el servidor. Verifica tu conexión a internet.';
-export const UNEXPECTED_ERROR_MESSAGE = 'Ocurrió un error inesperado al procesar la solicitud.';
+export { NETWORK_ERROR_MESSAGE, UNEXPECTED_ERROR_MESSAGE };
 
 interface AuthApiResponse {
   data: string;
