@@ -1,1 +1,69 @@
-<p>program-list works!</p>
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template pTemplate="start">
+            <h5 class="m-0">Calendario de Riego</h5>
+        </ng-template>
+        <ng-template pTemplate="end">
+            @if (canEdit) {
+                <button pButton type="button" label="Nuevo programa" icon="pi pi-plus" routerLink="/irrigation-programs/new"></button>
+            }
+        </ng-template>
+    </p-toolbar>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <p-table
+        [value]="programs()"
+        [lazy]="true"
+        [paginator]="true"
+        [rows]="10"
+        [totalRecords]="totalRecords()"
+        [loading]="loading()"
+        (onLazyLoad)="onLazyLoad($event)"
+        dataKey="id"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [stripedRows]="true"
+        [rowHover]="true"
+        responsiveLayout="scroll"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Nombre</th>
+                <th>Sector</th>
+                <th>Hora</th>
+                <th>Duración (min)</th>
+                <th>Días</th>
+                <th>Estado</th>
+                <th style="width: 4rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-program>
+            <tr>
+                <td>{{ program.name }}</td>
+                <td>{{ sectorName(program.hydraulicSectorId) }}</td>
+                <td>{{ program.startTime.substring(0, 5) }}</td>
+                <td>{{ program.durationMinutes }}</td>
+                <td>{{ daysLabel(program.daysOfWeek) }}</td>
+                <td>
+                    <p-tag [severity]="program.isActive ? 'success' : 'danger'" [value]="program.isActive ? 'Activo' : 'Inactivo'"></p-tag>
+                </td>
+                <td>
+                    <button
+                        pButton
+                        type="button"
+                        [icon]="canEdit ? 'pi pi-pencil' : 'pi pi-eye'"
+                        class="p-button-text p-button-rounded"
+                        [routerLink]="['/irrigation-programs', program.id]"
+                    ></button>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="7" class="text-center">No hay programas de riego registrados todavía.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

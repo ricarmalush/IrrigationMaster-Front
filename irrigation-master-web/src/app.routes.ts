@@ -40,7 +40,9 @@ export const appRoutes: Routes = [
             { path: 'users/new', loadComponent: () => import('./app/features/level3-functional/users/pages/user-detail/user-detail.component').then((c) => c.UserDetailComponent) },
             { path: 'users/:id', loadComponent: () => import('./app/features/level3-functional/users/pages/user-detail/user-detail.component').then((c) => c.UserDetailComponent) },
             // { path: 'plots', loadComponent: () => import('./app/features/level3-functional/plots/pages/plots/plots.component').then(c => c.PlotsComponent) },
-            { path: 'irrigation-programs', component: ComingSoonComponent, data: { title: 'Calendario de Riego' } },
+            { path: 'irrigation-programs', loadComponent: () => import('./app/features/level3-functional/irrigation-programs/pages/program-list/program-list.component').then((c) => c.ProgramListComponent) },
+            { path: 'irrigation-programs/new', loadComponent: () => import('./app/features/level3-functional/irrigation-programs/pages/program-form/program-form.component').then((c) => c.ProgramFormComponent) },
+            { path: 'irrigation-programs/:id', loadComponent: () => import('./app/features/level3-functional/irrigation-programs/pages/program-form/program-form.component').then((c) => c.ProgramFormComponent) },
 
             // NIVEL 4: OPERATIONAL
             // { path: 'valves', loadComponent: () => import('./app/features/level4-operational/valves/pages/valves/valves.component').then(c => c.ValvesComponent) },

@@ -1,0 +1,118 @@
+<div class="card">
+    <h5>{{ isEditMode() ? 'Editar programa de riego' : 'Nuevo programa de riego' }}</h5>
+
+    @if (!canEdit) {
+        <p-message severity="warn" text="No tienes permiso para editar el calendario de riego." styleClass="mb-4 w-full"></p-message>
+    }
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="name" class="text-sm font-semibold">Nombre</label>
+                <input pInputText id="name" formControlName="name" class="w-full" placeholder="Ej. Riego matutino Sector Norte" />
+                @if (form.controls.name.invalid && form.controls.name.touched) {
+                    <small class="text-red-500 text-sm">El nombre es obligatorio (máx. 150 caracteres).</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="startTime" class="text-sm font-semibold">Hora de inicio</label>
+                <p-datepicker id="startTime" formControlName="startTime" [timeOnly]="true" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="durationMinutes" class="text-sm font-semibold">Duración (minutos)</label>
+                <p-inputnumber id="durationMinutes" formControlName="durationMinutes" [min]="1" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                @if (form.controls.durationMinutes.invalid && form.controls.durationMinutes.touched) {
+                    <small class="text-red-500 text-sm">La duración debe ser mayor que 0.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="hydraulicSectorId" class="text-sm font-semibold">Sector hidráulico</label>
+                <p-select
+                    id="hydraulicSectorId"
+                    formControlName="hydraulicSectorId"
+                    [options]="sectors()"
+                    optionLabel="name"
+                    optionValue="id"
+                    [loading]="sectorsLoading()"
+                    placeholder="Selecciona un sector"
+                    styleClass="w-full"
+                ></p-select>
+                @if (!isEditMode() && form.controls.hydraulicSectorId.invalid && form.controls.hydraulicSectorId.touched) {
+                    <small class="text-red-500 text-sm">Selecciona un sector.</small>
+                }
+                @if (isEditMode()) {
+                    <small class="text-muted-color text-sm">El sector no se puede cambiar una vez creado el programa.</small>
+                }
+            </div>
+
+            @if (isEditMode()) {
+                <div class="flex flex-col gap-2">
+                    <label for="isActive" class="text-sm font-semibold">Activo</label>
+                    <p-toggleswitch id="isActive" formControlName="isActive"></p-toggleswitch>
+                </div>
+            }
+        </div>
+
+        <div class="mb-6">
+            <label class="text-sm font-semibold">Días de riego</label>
+            <div class="flex flex-wrap gap-2 mt-2">
+                @for (day of dayOptions; track day.value) {
+                    <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-border text-sm border transition-colors"
+                        [class.bg-primary]="selectedDays().has(day.value)"
+                        [class.text-primary-contrast]="selectedDays().has(day.value)"
+                        [class.border-primary]="selectedDays().has(day.value)"
+                        [class.border-surface-300]="!selectedDays().has(day.value)"
+                        [disabled]="!canEdit"
+                        (click)="toggleDay(day.value)"
+                    >
+                        {{ day.label }}
+                    </button>
+                }
+            </div>
+            @if (daysTouched() && selectedDays().size === 0) {
+                <small class="text-red-500 text-sm">Selecciona al menos un día.</small>
+            }
+        </div>
+
+        <div class="mb-6" formGroupName="season">
+            <label class="text-sm font-semibold">Temporada (opcional -- los 4 campos, o ninguno)</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 mt-2">
+                <div class="flex flex-col gap-2">
+                    <label for="seasonStartMonth" class="text-sm">Mes inicio</label>
+                    <p-inputnumber id="seasonStartMonth" formControlName="startMonth" [min]="1" [max]="12" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="seasonStartDay" class="text-sm">Día inicio</label>
+                    <p-inputnumber id="seasonStartDay" formControlName="startDay" [min]="1" [max]="31" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="seasonEndMonth" class="text-sm">Mes fin</label>
+                    <p-inputnumber id="seasonEndMonth" formControlName="endMonth" [min]="1" [max]="12" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label for="seasonEndDay" class="text-sm">Día fin</label>
+                    <p-inputnumber id="seasonEndDay" formControlName="endDay" [min]="1" [max]="31" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                </div>
+            </div>
+            @if (form.controls.season.errors?.['seasonIncomplete'] && form.controls.season.touched) {
+                <small class="text-red-500 text-sm">La temporada debe rellenarse completa (inicio y fin) o dejarse completamente vacía.</small>
+            }
+        </div>
+
+        @if (canEdit) {
+            <div class="flex justify-end gap-3 mt-6">
+                <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>
+                <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear programa'" [loading]="saving()" [disabled]="loading()"></button>
+            </div>
+        }
+    </form>
+</div>
