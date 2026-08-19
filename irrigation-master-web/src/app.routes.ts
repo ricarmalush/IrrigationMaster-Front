@@ -47,6 +47,14 @@ export const appRoutes: Routes = [
             // { path: 'sensors', loadComponent: () => import('./app/features/level4-operational/sensors/pages/sensors/sensors.component').then(c => c.SensorsComponent) },
 
             // NIVEL 5: EQUIPMENT
+            {
+                path: 'notifications/report-incident',
+                loadComponent: () => import('./app/features/level5-equipment/notifications/pages/report-incident/report-incident.component').then((c) => c.ReportIncidentComponent)
+            },
+            {
+                path: 'notifications/community-broadcast',
+                loadComponent: () => import('./app/features/level5-equipment/notifications/pages/community-broadcast/community-broadcast.component').then((c) => c.CommunityBroadcastComponent)
+            },
             // { path: 'invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoices/invoices.component').then(c => c.InvoicesComponent) },
             // { path: 'audit-logs', loadComponent: () => import('./app/features/level5-equipment/audit-logs/pages/audit-logs/audit-logs.component').then(c => c.AuditLogsComponent) }
         ]
