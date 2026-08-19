@@ -8,7 +8,7 @@ import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
 import { PrimeNG } from 'primeng/config';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { LayoutService } from '@/app/layout/service/layout.service';
+import { LayoutService, ThemeMode } from '@/app/layout/service/layout.service';
 
 const presets = {
     Aura,
@@ -42,6 +42,10 @@ declare type SurfacesType = {
     imports: [CommonModule, FormsModule, SelectButtonModule],
     template: `
         <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2">
+                <span class="text-sm text-muted-color font-semibold">Tema</span>
+                <p-selectbutton [options]="themeOptions" [ngModel]="selectedTheme()" (ngModelChange)="onThemeChange($event)" [allowEmpty]="false" size="small" />
+            </div>
             <div>
                 <span class="text-sm text-muted-color font-semibold">Primary</span>
                 <div class="pt-2 flex gap-2 flex-wrap justify-start">
@@ -72,7 +76,7 @@ declare type SurfacesType = {
                             (click)="updateColors($event, 'surface', surface)"
                             class="cursor-pointer w-5 h-5 rounded-full flex shrink-0 items-center justify-center p-0 outline-offset-1"
                             [ngClass]="{
-                                    'outline outline-primary': selectedSurfaceColor() ? selectedSurfaceColor() === surface.name : layoutService.layoutConfig().darkTheme ? surface.name === 'zinc' : surface.name === 'slate'
+                                    'outline outline-primary': selectedSurfaceColor() ? selectedSurfaceColor() === surface.name : layoutService.isDarkTheme() ? surface.name === 'zinc' : surface.name === 'slate'
                                 }"
                             [style]="{
                                     'background-color': surface?.palette?.['500']
@@ -107,6 +111,12 @@ export class AppConfigurator {
     primeng = inject(PrimeNG);
 
     presets = Object.keys(presets);
+
+    themeOptions: { label: string; value: ThemeMode }[] = [
+        { label: 'Claro', value: 'light' },
+        { label: 'Suave', value: 'soft' },
+        { label: 'Oscuro', value: 'dark' }
+    ];
 
     showMenuModeButton = signal(!this.router.url.includes('auth'));
 
@@ -259,6 +269,8 @@ export class AppConfigurator {
             }
         }
     ];
+
+    selectedTheme = computed(() => this.layoutService.layoutConfig().theme);
 
     selectedPrimaryColor = computed(() => {
         return this.layoutService.layoutConfig().primary;
@@ -438,6 +450,10 @@ export class AppConfigurator {
         const preset = presets[event as KeyOfType<typeof presets>];
         const surfacePalette = this.surfaces.find((s) => s.name === this.selectedSurfaceColor())?.palette;
         $t().preset(preset).preset(this.getPresetExt()).surfacePalette(surfacePalette).use({ useDefaultOptions: true });
+    }
+
+    onThemeChange(theme: ThemeMode) {
+        this.layoutService.setTheme(theme);
     }
 
     onMenuModeChange(event: string) {

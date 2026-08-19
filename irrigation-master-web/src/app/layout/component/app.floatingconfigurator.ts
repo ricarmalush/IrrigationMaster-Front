@@ -5,12 +5,18 @@ import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import {CommonModule} from "@angular/common";
 
+const THEME_ICONS: Record<string, string> = {
+    light: 'pi pi-sun',
+    soft: 'pi pi-cloud',
+    dark: 'pi pi-moon'
+};
+
 @Component({
     selector: 'app-floating-configurator',
     imports: [CommonModule, ButtonModule, StyleClassModule, AppConfigurator],
     template: `
         <div class="flex gap-4 top-8 right-8" [ngClass]="{'fixed':float()}">
-            <p-button type="button" (onClick)="toggleDarkMode()" [rounded]="true" [icon]="isDarkTheme() ? 'pi pi-moon' : 'pi pi-sun'" severity="secondary" />
+            <p-button type="button" (onClick)="layoutService.cycleTheme()" [rounded]="true" [icon]="themeIcon()" severity="secondary" />
             <div class="relative">
                 <p-button icon="pi pi-palette" pStyleClass="@next" enterFromClass="hidden" enterActiveClass="animate-scalein" leaveToClass="hidden" leaveActiveClass="animate-fadeout" [hideOnOutsideClick]="true" type="button" rounded />
                 <app-configurator />
@@ -19,14 +25,9 @@ import {CommonModule} from "@angular/common";
     `
 })
 export class AppFloatingConfigurator {
-    LayoutService = inject(LayoutService);
+    layoutService = inject(LayoutService);
 
     float = input<boolean>(true);
 
-    isDarkTheme = computed(() => this.LayoutService.layoutConfig().darkTheme);
-
-    toggleDarkMode() {
-        this.LayoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
-    }
-
+    themeIcon = computed(() => THEME_ICONS[this.layoutService.layoutConfig().theme]);
 }

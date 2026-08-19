@@ -1,10 +1,12 @@
 import { Injectable, effect, signal, computed } from '@angular/core';
 
+export type ThemeMode = 'light' | 'dark' | 'soft';
+
 export interface LayoutConfig {
     preset: string;
     primary: string;
     surface: string | undefined | null;
-    darkTheme: boolean;
+    theme: ThemeMode;
     menuMode: string;
 }
 
@@ -17,6 +19,12 @@ interface LayoutState {
     activePath: string | null;
 }
 
+export const THEME_STORAGE_KEY = 'irrigationmaster-theme';
+
+// Claro -> Suave -> Oscuro -> Claro: un solo orden, compartido por el icono cíclico de la
+// topbar/404 y por cualquier otro sitio que necesite "el siguiente tema".
+export const THEME_CYCLE: ThemeMode[] = ['light', 'soft', 'dark'];
+
 @Injectable({
     providedIn: 'root'
 })
@@ -25,7 +33,7 @@ export class LayoutService {
         preset: 'Aura',
         primary: 'emerald',
         surface: null,
-        darkTheme: false,
+        theme: this.readStoredTheme(),
         menuMode: 'static'
     });
 
@@ -38,11 +46,11 @@ export class LayoutService {
         activePath: null
     });
 
-    theme = computed(() => (this.layoutConfig().darkTheme ? 'light' : 'dark'));
-
     isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().mobileMenuActive);
 
-    isDarkTheme = computed(() => this.layoutConfig().darkTheme);
+    isDarkTheme = computed(() => this.layoutConfig().theme === 'dark');
+
+    isSoftTheme = computed(() => this.layoutConfig().theme === 'soft');
 
     getPrimary = computed(() => this.layoutConfig().primary);
 
@@ -57,14 +65,26 @@ export class LayoutService {
     constructor() {
         effect(() => {
             const config = this.layoutConfig();
+            this.persistTheme(config.theme);
 
-            if (!this.initialized || !config) {
+            if (!this.initialized) {
                 this.initialized = true;
+                this.applyThemeClasses(config.theme);
                 return;
             }
 
             this.handleDarkModeTransition(config);
         });
+    }
+
+    setTheme(theme: ThemeMode): void {
+        this.layoutConfig.update((state) => ({ ...state, theme }));
+    }
+
+    cycleTheme(): void {
+        const current = this.layoutConfig().theme;
+        const next = THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+        this.setTheme(next);
     }
 
     private handleDarkModeTransition(config: LayoutConfig): void {
@@ -73,23 +93,36 @@ export class LayoutService {
         if (supportsViewTransition) {
             this.startViewTransition(config);
         } else {
-            this.toggleDarkMode(config);
+            this.applyThemeClasses(config.theme);
         }
     }
 
     private startViewTransition(config: LayoutConfig): void {
         document.startViewTransition(() => {
-            this.toggleDarkMode(config);
+            this.applyThemeClasses(config.theme);
         });
     }
 
-    toggleDarkMode(config?: LayoutConfig): void {
-        const _config = config || this.layoutConfig();
-        if (_config.darkTheme) {
-            document.documentElement.classList.add('app-dark');
-        } else {
-            document.documentElement.classList.remove('app-dark');
+    private applyThemeClasses(theme: ThemeMode): void {
+        document.documentElement.classList.toggle('app-dark', theme === 'dark');
+        document.documentElement.classList.toggle('app-soft', theme === 'soft');
+    }
+
+    private readStoredTheme(): ThemeMode {
+        if (typeof localStorage === 'undefined') {
+            return 'light';
         }
+
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        return stored === 'dark' || stored === 'soft' || stored === 'light' ? stored : 'light';
+    }
+
+    private persistTheme(theme: ThemeMode): void {
+        if (typeof localStorage === 'undefined') {
+            return;
+        }
+
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
     }
 
     onMenuToggle() {

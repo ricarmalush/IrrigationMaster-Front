@@ -1,10 +1,22 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '@/app/layout/service/layout.service';
+
+const THEME_ICONS: Record<string, string> = {
+    light: 'pi-sun',
+    soft: 'pi-cloud',
+    dark: 'pi-moon'
+};
+
+const THEME_LABELS: Record<string, string> = {
+    light: 'Tema claro',
+    soft: 'Tema suave',
+    dark: 'Tema oscuro'
+};
 
 @Component({
     selector: 'app-topbar',
@@ -39,8 +51,8 @@ import { LayoutService } from '@/app/layout/service/layout.service';
 
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
-                <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
-                    <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
+                <button type="button" class="layout-topbar-action" [title]="themeLabel()" (click)="layoutService.cycleTheme()">
+                    <i class="pi" [ngClass]="themeIcon()"></i>
                 </button>
                 <div class="relative">
                     <button
@@ -86,10 +98,6 @@ export class AppTopbar {
 
     layoutService = inject(LayoutService);
 
-    toggleDarkMode() {
-        this.layoutService.layoutConfig.update((state) => ({
-            ...state,
-            darkTheme: !state.darkTheme
-        }));
-    }
+    themeIcon = computed(() => THEME_ICONS[this.layoutService.layoutConfig().theme]);
+    themeLabel = computed(() => THEME_LABELS[this.layoutService.layoutConfig().theme]);
 }

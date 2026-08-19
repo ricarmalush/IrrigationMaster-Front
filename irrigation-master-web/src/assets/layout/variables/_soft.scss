@@ -1,0 +1,12 @@
+// Tema "Suave": capa de reskin sobre el modo claro de PrimeNG (no activa .app-dark), mismo
+// mecanismo que _dark.scss -- una clase en <html> + overrides de variables en :root[class*='...'].
+// El verde corporativo de acento se mantiene igual que en claro (no se toca aquí).
+:root[class*='app-soft'] {
+    --surface-ground: #eef0ec;
+    --surface-card: #f7f8f5;
+    --surface-border: #dde0d8;
+    --p-text-color: #2a2e28;
+    --p-text-muted-color: #6b7166;
+    --p-datatable-row-striped-background: #eff1eb;
+    --p-datatable-row-hover-background: #e3ece3;
+}
