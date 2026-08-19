@@ -1,6 +1,8 @@
 import { Component, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
 import { AppTopbar } from './app.topbar';
 import { AppSidebar } from './app.sidebar';
 import { AppFooter } from './app.footer';
@@ -9,7 +11,7 @@ import { LayoutService } from '@/app/layout/service/layout.service';
 @Component({
     selector: 'app-layout',
     standalone: true,
-    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter],
+    imports: [CommonModule, AppTopbar, AppSidebar, RouterModule, AppFooter, ToastModule, ConfirmDialogModule],
     template: `<div class="layout-wrapper" [ngClass]="containerClass()">
         <app-topbar></app-topbar>
         <app-sidebar></app-sidebar>
@@ -20,6 +22,8 @@ import { LayoutService } from '@/app/layout/service/layout.service';
             <app-footer></app-footer>
         </div>
         <div class="layout-mask"></div>
+        <p-toast />
+        <p-confirmdialog />
     </div> `
 })
 export class AppLayout {

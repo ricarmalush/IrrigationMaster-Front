@@ -24,7 +24,9 @@ export const appRoutes: Routes = [
             // { path: 'roles', loadComponent: () => import('./app/features/level1-core/roles/pages/roles/roles.component').then(c => c.RolesComponent) },
 
             // NIVEL 2: STRUCTURE
-            // { path: 'organizations', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organizations/organizations.component').then(c => c.OrganizationsComponent) },
+            { path: 'organizations', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organization-list/organization-list.component').then((c) => c.OrganizationListComponent) },
+            { path: 'organizations/new', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organization-detail/organization-detail.component').then((c) => c.OrganizationDetailComponent) },
+            { path: 'organizations/:id', loadComponent: () => import('./app/features/level2-structure/organizations/pages/organization-detail/organization-detail.component').then((c) => c.OrganizationDetailComponent) },
             // { path: 'hydraulic-sectors', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/hydraulic-sectors/hydraulic-sectors.component').then(c => c.HydraulicSectorsComponent) },
 
             // NIVEL 3: FUNCTIONAL
