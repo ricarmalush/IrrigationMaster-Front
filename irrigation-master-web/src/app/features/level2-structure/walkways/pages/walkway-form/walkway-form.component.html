@@ -6,25 +6,25 @@
     }
 
     <form [formGroup]="form" (ngSubmit)="save()">
-        <div class="formgrid grid">
-            <div class="field col-12 md:col-4">
-                <label for="code">Código</label>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="code" class="text-sm font-semibold">Código</label>
                 <input pInputText id="code" formControlName="code" class="w-full" />
                 @if (form.controls.code.invalid && form.controls.code.touched) {
-                    <small class="p-error">El código es obligatorio.</small>
+                    <small class="text-red-500 text-sm">El código es obligatorio.</small>
                 }
             </div>
 
-            <div class="field col-12 md:col-4">
-                <label for="length">Longitud (m)</label>
+            <div class="flex flex-col gap-2">
+                <label for="length" class="text-sm font-semibold">Longitud (m)</label>
                 <p-inputnumber id="length" formControlName="length" [minFractionDigits]="0" [maxFractionDigits]="2" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
                 @if (form.controls.length.invalid && form.controls.length.touched) {
-                    <small class="p-error">La longitud debe ser mayor que 0.</small>
+                    <small class="text-red-500 text-sm">La longitud debe ser mayor que 0.</small>
                 }
             </div>
 
-            <div class="field col-12 md:col-4">
-                <label for="hydraulicSectorId">Sector hidráulico</label>
+            <div class="flex flex-col gap-2">
+                <label for="hydraulicSectorId" class="text-sm font-semibold">Sector hidráulico</label>
                 <p-select
                     id="hydraulicSectorId"
                     formControlName="hydraulicSectorId"
@@ -36,13 +36,13 @@
                     styleClass="w-full"
                 ></p-select>
                 @if (!isEditMode() && form.controls.hydraulicSectorId.invalid && form.controls.hydraulicSectorId.touched) {
-                    <small class="p-error">Selecciona un sector.</small>
+                    <small class="text-red-500 text-sm">Selecciona un sector.</small>
                 }
             </div>
         </div>
 
-        <div class="flex gap-2 justify-content-end">
-            <button pButton type="button" label="Cancelar" class="p-button-text" (click)="cancel()"></button>
+        <div class="flex justify-end gap-3 mt-6">
+            <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>
             <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear andador'" [loading]="saving()" [disabled]="loading()"></button>
         </div>
     </form>

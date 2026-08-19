@@ -163,15 +163,15 @@ export class UserDetailComponent implements OnInit {
     }
 
     private loadOrganizations(): void {
-        this.organizationService.list(1, 200).subscribe((result) => this.organizations.set(result.items));
+        this.organizationService.list(1, 100).subscribe((result) => this.organizations.set(result.items));
     }
 
     private loadRoles(): void {
-        this.roleService.list(1, 200).subscribe((result) => this.roles.set(result.items));
+        this.roleService.list(1, 100).subscribe((result) => this.roles.set(result.items));
     }
 
     private loadWalkways(): void {
-        this.walkwayService.list(1, 200).subscribe((result) => this.walkways.set(result.items));
+        this.walkwayService.list(1, 100).subscribe((result) => this.walkways.set(result.items));
     }
 
     private loadUser(id: string): void {

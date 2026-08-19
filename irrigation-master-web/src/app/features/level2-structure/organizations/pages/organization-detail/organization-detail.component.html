@@ -5,47 +5,61 @@
         <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
     }
 
+    @if (isEditMode() && invitationCode()) {
+        <div class="flex flex-col gap-2 mb-6">
+            <label for="invitationCode" class="text-sm font-semibold">Código de invitación (compártelo con nuevos vecinos)</label>
+            <input pInputText id="invitationCode" [value]="invitationCode()" readonly class="w-full font-bold" />
+        </div>
+    }
+
     <form [formGroup]="form" (ngSubmit)="save()">
-        <div class="formgrid grid">
-            <div class="field col-12 md:col-6">
-                <label for="name">Nombre</label>
+        <p class="text-xs font-semibold uppercase tracking-wide text-muted-color mb-3">Datos generales</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="name" class="text-sm font-semibold">Nombre</label>
                 <input pInputText id="name" formControlName="name" class="w-full" />
                 @if (form.controls.name.invalid && form.controls.name.touched) {
-                    <small class="p-error">El nombre es obligatorio.</small>
+                    <small class="text-red-500 text-sm">El nombre es obligatorio.</small>
                 }
             </div>
 
-            <div class="field col-12 md:col-6">
-                <label for="taxId">CIF/NIF</label>
+            <div class="flex flex-col gap-2">
+                <label for="taxId" class="text-sm font-semibold">CIF/NIF</label>
                 <input pInputText id="taxId" formControlName="taxId" class="w-full" />
                 @if (form.controls.taxId.invalid && form.controls.taxId.touched) {
-                    <small class="p-error">El CIF/NIF es obligatorio.</small>
+                    <small class="text-red-500 text-sm">El CIF/NIF es obligatorio.</small>
                 }
             </div>
+        </div>
 
-            <div formGroupName="address" class="grid col-12 formgrid">
-                <div class="field col-12 md:col-6">
-                    <label for="mainAddress">Dirección</label>
+        <div formGroupName="address">
+            <p class="text-xs font-semibold uppercase tracking-wide text-muted-color mb-3">Dirección</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-5">
+                <div class="flex flex-col gap-2">
+                    <label for="mainAddress" class="text-sm font-semibold">Dirección</label>
                     <input pInputText id="mainAddress" formControlName="mainAddress" class="w-full" />
                 </div>
 
-                <div class="field col-12 md:col-6">
-                    <label for="city">Ciudad</label>
+                <div class="flex flex-col gap-2">
+                    <label for="city" class="text-sm font-semibold">Ciudad</label>
                     <input pInputText id="city" formControlName="city" class="w-full" />
                 </div>
+            </div>
 
-                <div class="field col-12 md:col-4">
-                    <label for="stateOrProvince">Provincia</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-5">
+                <div class="flex flex-col gap-2">
+                    <label for="stateOrProvince" class="text-sm font-semibold">Provincia</label>
                     <input pInputText id="stateOrProvince" formControlName="stateOrProvince" class="w-full" />
                 </div>
 
-                <div class="field col-12 md:col-4">
-                    <label for="postalCode">Código postal</label>
+                <div class="flex flex-col gap-2">
+                    <label for="postalCode" class="text-sm font-semibold">Código postal</label>
                     <input pInputText id="postalCode" formControlName="postalCode" class="w-full" />
                 </div>
 
-                <div class="field col-12 md:col-4">
-                    <label for="countryId">País</label>
+                <div class="flex flex-col gap-2">
+                    <label for="countryId" class="text-sm font-semibold">País</label>
                     <p-select
                         id="countryId"
                         formControlName="countryId"
@@ -57,17 +71,19 @@
                         styleClass="w-full"
                     ></p-select>
                 </div>
+            </div>
 
-                <div class="field col-12">
-                    <label for="locationDetail">Detalle de ubicación (opcional)</label>
-                    <input pInputText id="locationDetail" formControlName="locationDetail" class="w-full" />
-                </div>
+            <div class="flex flex-col gap-2">
+                <label for="locationDetail" class="text-sm font-semibold">Detalle de ubicación (opcional)</label>
+                <input pInputText id="locationDetail" formControlName="locationDetail" class="w-full" />
             </div>
         </div>
 
-        <div class="flex gap-2 justify-content-end">
-            <button pButton type="button" label="Cancelar" class="p-button-text" (click)="cancel()"></button>
-            <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear organización'" [loading]="saving()" [disabled]="loading()"></button>
+        <div class="flex justify-end gap-3 mt-6">
+            <button pButton type="button" [label]="canEdit ? 'Cancelar' : 'Volver'" severity="secondary" (click)="cancel()"></button>
+            @if (canEdit) {
+                <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear organización'" [loading]="saving()" [disabled]="loading()"></button>
+            }
         </div>
     </form>
 </div>

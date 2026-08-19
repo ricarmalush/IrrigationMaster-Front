@@ -84,7 +84,7 @@ export class WalkwayFormComponent implements OnInit {
 
     private loadSectors(): void {
         this.sectorsLoading.set(true);
-        this.hydraulicSectorService.list(1, 200).subscribe((result) => {
+        this.hydraulicSectorService.list(1, 100).subscribe((result) => {
             this.sectorsLoading.set(false);
             this.sectors.set(result.items);
         });

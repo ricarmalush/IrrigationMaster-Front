@@ -44,8 +44,14 @@
                     <p-tag [severity]="organization.isActive ? 'success' : 'danger'" [value]="organization.isActive ? 'Activa' : 'Eliminada'"></p-tag>
                 </td>
                 <td>
+                    <button
+                        pButton
+                        type="button"
+                        [icon]="isSuperAdmin ? 'pi pi-pencil' : 'pi pi-eye'"
+                        class="p-button-text p-button-rounded"
+                        [routerLink]="['/organizations', organization.id]"
+                    ></button>
                     @if (isSuperAdmin) {
-                        <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-rounded" [routerLink]="['/organizations', organization.id]"></button>
                         @if (organization.isActive) {
                             <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-rounded p-button-danger" (click)="confirmDelete(organization)"></button>
                         } @else {

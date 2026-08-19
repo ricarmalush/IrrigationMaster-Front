@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { CountryService } from '../../../../level1-core/countries/services/country.service';
+import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { Country } from '../../../../../shared/models/country.model';
 import { OrganizationService } from '../../services/organization.service';
 
@@ -23,6 +24,13 @@ export class OrganizationDetailComponent implements OnInit {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private messageService = inject(MessageService);
+    private currentSession = inject(CurrentSessionService);
+
+    // Solo SUPERADMIN puede crear/editar/borrar organizaciones (ver OrganizationsController) --
+    // un Presidente/Vicepresidente que llegue aquí (p. ej. para ver el código de invitación de su
+    // propia organización) ve el formulario en solo lectura en vez de un botón Guardar que
+    // siempre fallaría con 403.
+    readonly canEdit = this.currentSession.getRole() === 'SUPERADMIN';
 
     readonly isEditMode = signal(false);
     readonly loading = signal(false);
@@ -30,6 +38,7 @@ export class OrganizationDetailComponent implements OnInit {
     readonly errorMessage = signal<string | null>(null);
     readonly countries = signal<Country[]>([]);
     readonly countriesLoading = signal(false);
+    readonly invitationCode = signal<string | null>(null);
 
     private organizationId: string | null = null;
 
@@ -49,6 +58,10 @@ export class OrganizationDetailComponent implements OnInit {
     ngOnInit(): void {
         this.loadCountries();
 
+        if (!this.canEdit) {
+            this.form.disable();
+        }
+
         this.organizationId = this.route.snapshot.paramMap.get('id');
         if (this.organizationId) {
             this.isEditMode.set(true);
@@ -57,7 +70,7 @@ export class OrganizationDetailComponent implements OnInit {
     }
 
     save(): void {
-        if (this.form.invalid) {
+        if (!this.canEdit || this.form.invalid) {
             this.form.markAllAsTouched();
             return;
         }
@@ -89,7 +102,7 @@ export class OrganizationDetailComponent implements OnInit {
 
     private loadCountries(): void {
         this.countriesLoading.set(true);
-        this.countryService.list(1, 200).subscribe((result) => {
+        this.countryService.list(1, 100).subscribe((result) => {
             this.countriesLoading.set(false);
             this.countries.set(result.items);
         });
@@ -101,6 +114,7 @@ export class OrganizationDetailComponent implements OnInit {
             this.loading.set(false);
             if (result.isSuccess && result.data) {
                 this.form.patchValue(result.data);
+                this.invitationCode.set(result.data.invitationCode);
             } else {
                 this.errorMessage.set(result.message);
             }

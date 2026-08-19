@@ -6,60 +6,60 @@
     }
 
     <form [formGroup]="form" (ngSubmit)="save()">
-        <div class="formgrid grid">
-            <div class="field col-12 md:col-6">
-                <label for="firstName">Nombre</label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="firstName" class="text-sm font-semibold">Nombre</label>
                 <input pInputText id="firstName" formControlName="firstName" class="w-full" />
                 @if (form.controls.firstName.invalid && form.controls.firstName.touched) {
-                    <small class="p-error">El nombre es obligatorio.</small>
+                    <small class="text-red-500 text-sm">El nombre es obligatorio.</small>
                 }
             </div>
 
-            <div class="field col-12 md:col-6">
-                <label for="lastName">Apellidos</label>
+            <div class="flex flex-col gap-2">
+                <label for="lastName" class="text-sm font-semibold">Apellidos</label>
                 <input pInputText id="lastName" formControlName="lastName" class="w-full" />
                 @if (form.controls.lastName.invalid && form.controls.lastName.touched) {
-                    <small class="p-error">Los apellidos son obligatorios.</small>
+                    <small class="text-red-500 text-sm">Los apellidos son obligatorios.</small>
                 }
             </div>
 
-            <div class="field col-12 md:col-6">
-                <label for="email">Email</label>
+            <div class="flex flex-col gap-2">
+                <label for="email" class="text-sm font-semibold">Email</label>
                 <input pInputText id="email" formControlName="email" class="w-full" />
                 @if (form.controls.email.invalid && form.controls.email.touched) {
-                    <small class="p-error">Introduce un email válido.</small>
+                    <small class="text-red-500 text-sm">Introduce un email válido.</small>
                 }
             </div>
 
-            <div class="field col-12 md:col-6">
-                <label for="organizationId">Organización</label>
+            <div class="flex flex-col gap-2">
+                <label for="organizationId" class="text-sm font-semibold">Organización</label>
                 <p-select id="organizationId" formControlName="organizationId" [options]="organizations()" optionLabel="name" optionValue="id" placeholder="Selecciona una organización" styleClass="w-full"></p-select>
                 @if (form.controls.organizationId.invalid && form.controls.organizationId.touched) {
-                    <small class="p-error">Selecciona una organización.</small>
+                    <small class="text-red-500 text-sm">Selecciona una organización.</small>
                 }
             </div>
 
             @if (!isEditMode()) {
-                <div class="field col-12 md:col-6">
-                    <label for="roleId">Rol</label>
+                <div class="flex flex-col gap-2">
+                    <label for="roleId" class="text-sm font-semibold">Rol</label>
                     <p-select id="roleId" formControlName="roleId" [options]="roles()" optionLabel="name" optionValue="id" placeholder="Selecciona un rol" styleClass="w-full"></p-select>
                     @if (form.controls.roleId.invalid && form.controls.roleId.touched) {
-                        <small class="p-error">Selecciona un rol.</small>
+                        <small class="text-red-500 text-sm">Selecciona un rol.</small>
                     }
                 </div>
 
-                <div class="field col-12 md:col-6">
-                    <label for="password">Contraseña</label>
+                <div class="flex flex-col gap-2">
+                    <label for="password" class="text-sm font-semibold">Contraseña</label>
                     <p-password id="password" formControlName="password" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
                     @if (form.controls.password.invalid && form.controls.password.touched) {
-                        <small class="p-error">La contraseña es obligatoria.</small>
+                        <small class="text-red-500 text-sm">La contraseña es obligatoria.</small>
                     }
                 </div>
             }
         </div>
 
-        <div class="flex gap-2 justify-content-end">
-            <button pButton type="button" label="Cancelar" class="p-button-text" (click)="cancel()"></button>
+        <div class="flex justify-end gap-3 mt-6">
+            <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>
             <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear usuario'" [loading]="saving()" [disabled]="loading()"></button>
         </div>
     </form>
@@ -70,40 +70,34 @@
         <h5>Acciones</h5>
 
         @if (!isActive()) {
-            <div class="flex align-items-center justify-content-between mb-4 p-3 border-round surface-100">
+            <div class="flex items-center justify-between mb-5 p-3 rounded-md bg-surface-100 dark:bg-surface-800">
                 <span>Este usuario está pendiente de aprobación.</span>
                 <button pButton type="button" label="Activar" icon="pi pi-check" (click)="activateUser()"></button>
             </div>
         }
 
-        <div class="formgrid grid align-items-end">
-            <div class="field col-12 md:col-5">
-                <label>Rol actual: {{ currentRole() || '—' }}</label>
+        <div class="flex flex-col md:flex-row md:items-end gap-3 mb-5">
+            <div class="flex flex-col gap-2 flex-1">
+                <label class="text-sm font-semibold">Rol actual: {{ currentRole() || '—' }}</label>
                 <p-select [options]="roles()" optionLabel="name" optionValue="id" [formControl]="roleActionControl" placeholder="Nuevo rol" styleClass="w-full"></p-select>
             </div>
-            <div class="field col-12 md:col-3">
-                <button pButton type="button" label="Cambiar rol" (click)="changeRole()"></button>
-            </div>
+            <button pButton type="button" label="Cambiar rol" (click)="changeRole()"></button>
         </div>
 
-        <div class="formgrid grid align-items-end">
-            <div class="field col-12 md:col-5">
-                <label>Andador actual: {{ currentWalkwayCode() || 'sin asignar' }}</label>
+        <div class="flex flex-col md:flex-row md:items-end gap-3 mb-5">
+            <div class="flex flex-col gap-2 flex-1">
+                <label class="text-sm font-semibold">Andador actual: {{ currentWalkwayCode() || 'sin asignar' }}</label>
                 <p-select [options]="walkways()" optionLabel="code" optionValue="id" [formControl]="walkwayActionControl" placeholder="Sin asignar" [showClear]="true" styleClass="w-full"></p-select>
             </div>
-            <div class="field col-12 md:col-3">
-                <button pButton type="button" label="Asignar andador" (click)="assignWalkway()"></button>
-            </div>
+            <button pButton type="button" label="Asignar andador" (click)="assignWalkway()"></button>
         </div>
 
-        <div class="formgrid grid align-items-end">
-            <div class="field col-12 md:col-5">
-                <label for="newPassword">Restablecer contraseña</label>
+        <div class="flex flex-col md:flex-row md:items-end gap-3">
+            <div class="flex flex-col gap-2 flex-1">
+                <label for="newPassword" class="text-sm font-semibold">Restablecer contraseña</label>
                 <p-password id="newPassword" [formControl]="passwordActionControl" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
             </div>
-            <div class="field col-12 md:col-3">
-                <button pButton type="button" label="Restablecer" (click)="resetPassword()"></button>
-            </div>
+            <button pButton type="button" label="Restablecer" (click)="resetPassword()"></button>
         </div>
     </div>
 }
