@@ -30,6 +30,9 @@ export const appRoutes: Routes = [
             { path: 'hydraulic-sectors', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/sector-list/sector-list.component').then((c) => c.SectorListComponent) },
             { path: 'hydraulic-sectors/new', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/sector-form/sector-form.component').then((c) => c.SectorFormComponent) },
             { path: 'hydraulic-sectors/:id', loadComponent: () => import('./app/features/level2-structure/hydraulic-sectors/pages/sector-form/sector-form.component').then((c) => c.SectorFormComponent) },
+            { path: 'walkways', loadComponent: () => import('./app/features/level2-structure/walkways/pages/walkway-list/walkway-list.component').then((c) => c.WalkwayListComponent) },
+            { path: 'walkways/new', loadComponent: () => import('./app/features/level2-structure/walkways/pages/walkway-form/walkway-form.component').then((c) => c.WalkwayFormComponent) },
+            { path: 'walkways/:id', loadComponent: () => import('./app/features/level2-structure/walkways/pages/walkway-form/walkway-form.component').then((c) => c.WalkwayFormComponent) },
 
             // NIVEL 3: FUNCTIONAL
             // { path: 'plots', loadComponent: () => import('./app/features/level3-functional/plots/pages/plots/plots.component').then(c => c.PlotsComponent) },

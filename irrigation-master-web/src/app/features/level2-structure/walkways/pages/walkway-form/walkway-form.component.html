@@ -1,0 +1,49 @@
+<div class="card">
+    <h5>{{ isEditMode() ? 'Editar andador' : 'Nuevo andador' }}</h5>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="formgrid grid">
+            <div class="field col-12 md:col-4">
+                <label for="code">Código</label>
+                <input pInputText id="code" formControlName="code" class="w-full" />
+                @if (form.controls.code.invalid && form.controls.code.touched) {
+                    <small class="p-error">El código es obligatorio.</small>
+                }
+            </div>
+
+            <div class="field col-12 md:col-4">
+                <label for="length">Longitud (m)</label>
+                <p-inputnumber id="length" formControlName="length" [minFractionDigits]="0" [maxFractionDigits]="2" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                @if (form.controls.length.invalid && form.controls.length.touched) {
+                    <small class="p-error">La longitud debe ser mayor que 0.</small>
+                }
+            </div>
+
+            <div class="field col-12 md:col-4">
+                <label for="hydraulicSectorId">Sector hidráulico</label>
+                <p-select
+                    id="hydraulicSectorId"
+                    formControlName="hydraulicSectorId"
+                    [options]="sectors()"
+                    optionLabel="name"
+                    optionValue="id"
+                    [loading]="sectorsLoading()"
+                    placeholder="Selecciona un sector"
+                    styleClass="w-full"
+                ></p-select>
+                @if (!isEditMode() && form.controls.hydraulicSectorId.invalid && form.controls.hydraulicSectorId.touched) {
+                    <small class="p-error">Selecciona un sector.</small>
+                }
+            </div>
+        </div>
+
+        <div class="flex gap-2 justify-content-end">
+            <button pButton type="button" label="Cancelar" class="p-button-text" (click)="cancel()"></button>
+            <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear andador'" [loading]="saving()" [disabled]="loading()"></button>
+        </div>
+    </form>
+</div>

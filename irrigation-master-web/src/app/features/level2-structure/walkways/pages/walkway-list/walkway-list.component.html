@@ -1,1 +1,54 @@
-<p>walkway-list works!</p>
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template pTemplate="start">
+            <h5 class="m-0">Andadores</h5>
+        </ng-template>
+        <ng-template pTemplate="end">
+            <button pButton type="button" label="Nuevo andador" icon="pi pi-plus" routerLink="/walkways/new"></button>
+        </ng-template>
+    </p-toolbar>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <p-table
+        [value]="walkways()"
+        [lazy]="true"
+        [paginator]="true"
+        [rows]="10"
+        [totalRecords]="totalRecords()"
+        [loading]="loading()"
+        (onLazyLoad)="onLazyLoad($event)"
+        dataKey="id"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        responsiveLayout="scroll"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Código</th>
+                <th>Longitud (m)</th>
+                <th>Estado</th>
+                <th style="width: 8rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-walkway>
+            <tr>
+                <td>{{ walkway.code }}</td>
+                <td>{{ walkway.length }}</td>
+                <td>
+                    <p-tag [severity]="walkway.isActive ? 'success' : 'danger'" [value]="walkway.isActive ? 'Activo' : 'Eliminado'"></p-tag>
+                </td>
+                <td>
+                    <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-rounded" [routerLink]="['/walkways', walkway.id]"></button>
+                    <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-rounded p-button-danger" (click)="confirmDelete(walkway)"></button>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="4" class="text-center">No hay andadores que mostrar.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
