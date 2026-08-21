@@ -50,7 +50,10 @@ export const appRoutes: Routes = [
                 path: 'irrigation-turns/approve',
                 loadComponent: () => import('./app/features/level4-operational/irrigation-turns/pages/turn-approval-list/turn-approval-list.component').then((c) => c.TurnApprovalListComponent)
             },
-            { path: 'irrigation-status', component: ComingSoonComponent, data: { title: 'Estado de Riego' } },
+            {
+                path: 'irrigation-status',
+                loadComponent: () => import('./app/features/level4-operational/irrigation-turns/pages/irrigation-status/irrigation-status.component').then((c) => c.IrrigationStatusComponent)
+            },
             // { path: 'sensors', loadComponent: () => import('./app/features/level4-operational/sensors/pages/sensors/sensors.component').then(c => c.SensorsComponent) },
 
             // NIVEL 5: EQUIPMENT

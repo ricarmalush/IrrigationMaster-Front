@@ -9,3 +9,35 @@ export interface PendingApprovalTurn {
     scheduledStart: string;
     scheduledEnd: string;
 }
+
+export type NeighborTurnStatus = 'Watering' | 'Waiting' | 'Completed';
+
+// Espejo de NeighborIrrigationStatusDto (GET IrrigationTurns/status): Status ya colapsa
+// Requested/Pending en "Waiting" -- IsApproved es lo único que distingue "esperando aprobación"
+// de "aprobado, puede empezar" dentro de ese mismo estado "Waiting".
+export interface NeighborIrrigationStatus {
+    userId: string;
+    turnId: string;
+    fullName: string;
+    status: NeighborTurnStatus;
+    scheduledStart: string;
+    scheduledEnd: string;
+    isApproved: boolean;
+}
+
+// Espejo de WalkwayIrrigationStatusDto: el agrupado por andador viene ya resuelto del backend
+// (via RequesterId -> User.WalkwayId, no via HydraulicSectorId -- ver comentario en el servicio).
+export interface WalkwayIrrigationStatus {
+    walkwayId: string;
+    walkwayCode: string;
+    neighbors: NeighborIrrigationStatus[];
+}
+
+// Espejo de CreateIrrigationTurnRequestDto ("Solicitar mi turno").
+export interface CreateIrrigationTurnRequest {
+    startTime: string;
+    endTime: string;
+    hydraulicSectorId: string;
+    requesterId: string;
+    priority?: number;
+}

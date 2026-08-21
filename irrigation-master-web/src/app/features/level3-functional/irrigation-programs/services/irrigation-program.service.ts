@@ -37,4 +37,14 @@ export class IrrigationProgramService {
     update(id: string, request: UpdateIrrigationProgramRequest): Observable<OperationResult<boolean>> {
         return toOperationResult(this.http.put<ApiResponse<boolean>>(`${this.apiUrl}/Update/${id}`, request));
     }
+
+    // GetIsIrrigationDayQuery: plantilla teórica (¿debería regarse?), deliberadamente separada de
+    // GetOrganizationIrrigationStatusQuery (turnos reales). `date` en formato "yyyy-MM-dd".
+    isIrrigationDay(hydraulicSectorId: string, date?: string): Observable<OperationResult<boolean>> {
+        let params = new HttpParams().set('HydraulicSectorId', hydraulicSectorId);
+        if (date) {
+            params = params.set('Date', date);
+        }
+        return toOperationResult(this.http.get<ApiResponse<boolean>>(`${this.apiUrl}/IsIrrigationDay`, { params }));
+    }
 }

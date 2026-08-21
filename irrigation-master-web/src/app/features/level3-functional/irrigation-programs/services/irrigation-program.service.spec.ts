@@ -193,4 +193,47 @@ describe('IrrigationProgramService', () => {
             expect(result?.isSuccess).toBe(false);
         });
     });
+
+    describe('isIrrigationDay()', () => {
+        it('sends HydraulicSectorId without a Date param when none is given', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.isIrrigationDay('sector-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`);
+            expect(req.request.params.get('HydraulicSectorId')).toBe('sector-1');
+            expect(req.request.params.has('Date')).toBe(false);
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
+        });
+
+        it('sends the Date param when given', () => {
+            service.isIrrigationDay('sector-1', '2026-08-25').subscribe();
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`);
+            expect(req.request.params.get('Date')).toBe('2026-08-25');
+            req.flush({ data: false, isSuccess: true, message: 'ok' });
+        });
+
+        it('on a 404 (sector inexistente), resolves with the backend message', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.isIrrigationDay('missing-sector').subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`).flush({ isSuccess: false, message: 'No se encontró el sector hidráulico.' }, { status: 404, statusText: 'Not Found' });
+
+            expect(result).toEqual({ isSuccess: false, message: 'No se encontró el sector hidráulico.' });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.isIrrigationDay('sector-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
 });
