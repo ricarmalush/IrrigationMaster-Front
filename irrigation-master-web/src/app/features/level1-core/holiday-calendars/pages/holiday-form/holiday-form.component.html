@@ -1,0 +1,39 @@
+<div class="card">
+    <h5>{{ isEditMode() ? 'Editar festivo' : 'Nuevo festivo' }}</h5>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="date" class="text-sm font-semibold">Fecha</label>
+                <p-datepicker id="date" formControlName="date" dateFormat="dd/mm/yy" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
+                @if (form.controls.date.invalid && form.controls.date.touched) {
+                    <small class="text-red-500 text-sm">La fecha es obligatoria.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="description" class="text-sm font-semibold">Descripción</label>
+                <input pInputText id="description" formControlName="description" class="w-full" placeholder="Ej. Navidad" />
+                @if (form.controls.description.invalid && form.controls.description.touched) {
+                    <small class="text-red-500 text-sm">La descripción es obligatoria.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2 justify-end pb-2">
+                <div class="flex items-center gap-2">
+                    <p-checkbox inputId="isNationalHoliday" formControlName="isNationalHoliday" [binary]="true"></p-checkbox>
+                    <label for="isNationalHoliday" class="text-sm font-semibold">Festivo nacional</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+            <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>
+            <button pButton type="submit" [label]="isEditMode() ? 'Guardar cambios' : 'Crear festivo'" [loading]="saving()" [disabled]="loading()"></button>
+        </div>
+    </form>
+</div>

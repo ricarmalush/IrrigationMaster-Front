@@ -68,7 +68,19 @@ export const appRoutes: Routes = [
             },
             // { path: 'invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoices/invoices.component').then(c => c.InvoicesComponent) },
             // { path: 'audit-logs', loadComponent: () => import('./app/features/level5-equipment/audit-logs/pages/audit-logs/audit-logs.component').then(c => c.AuditLogsComponent) },
-            { path: 'system-settings', component: ComingSoonComponent, data: { title: 'Configuración del Sistema' } }
+            { path: 'system-settings', loadComponent: () => import('./app/features/system-settings/pages/system-settings/system-settings.component').then((c) => c.SystemSettingsComponent) },
+            {
+                path: 'system-settings/holidays',
+                loadComponent: () => import('./app/features/level1-core/holiday-calendars/pages/calendar-management/calendar-management.component').then((c) => c.CalendarManagementComponent)
+            },
+            {
+                path: 'system-settings/holidays/new',
+                loadComponent: () => import('./app/features/level1-core/holiday-calendars/pages/holiday-form/holiday-form.component').then((c) => c.HolidayFormComponent)
+            },
+            {
+                path: 'system-settings/holidays/:id',
+                loadComponent: () => import('./app/features/level1-core/holiday-calendars/pages/holiday-form/holiday-form.component').then((c) => c.HolidayFormComponent)
+            }
         ]
     },
 

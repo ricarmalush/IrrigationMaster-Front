@@ -38,4 +38,10 @@ export class OrganizationService {
     restore(id: string): Observable<OperationResult<boolean>> {
         return toOperationResult(this.http.post<ApiResponse<boolean>>(`${this.apiUrl}/Restore/${id}`, {}));
     }
+
+    // Autogenera un código nuevo (customCode null) -- RegenerateInvitationCodeCommand exige el
+    // permiso MANAGE_ORGANIZATION_CODE o SUPERADMIN, y solo alcanza la propia organización.
+    regenerateInvitationCode(organizationId: string, customCode?: string): Observable<OperationResult<string>> {
+        return toOperationResult(this.http.put<ApiResponse<string>>(`${this.apiUrl}/RegenerateInvitationCode/${organizationId}`, { organizationId, customCode: customCode ?? null }));
+    }
 }

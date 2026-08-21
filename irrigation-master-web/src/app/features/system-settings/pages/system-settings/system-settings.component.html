@@ -1,0 +1,76 @@
+<div class="flex flex-col gap-6">
+    <div class="card">
+        <h5>Mi organización</h5>
+
+        @if (organizationErrorMessage()) {
+            <p-message severity="error" [text]="organizationErrorMessage()!" styleClass="mb-4 w-full"></p-message>
+        }
+
+        @if (loadingOrganization()) {
+            <p class="text-muted-color">Cargando...</p>
+        } @else {
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-4">
+                <div class="flex flex-col gap-2">
+                    <span class="text-sm font-semibold">Nombre</span>
+                    <span>{{ organizationName() }}</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <span class="text-sm font-semibold">Código de invitación</span>
+                    <span>{{ invitationCode() }}</span>
+                </div>
+            </div>
+
+            @if (canRegenerateCode) {
+                <div class="flex justify-end">
+                    <button pButton type="button" label="Regenerar código" icon="pi pi-refresh" severity="secondary" [loading]="regenerating()" (click)="confirmRegenerateCode()"></button>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="card">
+        <h5>Cambiar mi contraseña</h5>
+
+        @if (passwordErrorMessage()) {
+            <p-message severity="error" [text]="passwordErrorMessage()!" styleClass="mb-4 w-full"></p-message>
+        }
+
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+                <div class="flex flex-col gap-2">
+                    <label for="currentPassword" class="text-sm font-semibold">Contraseña actual</label>
+                    <p-password id="currentPassword" formControlName="currentPassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
+                    @if (passwordForm.controls.currentPassword.invalid && passwordForm.controls.currentPassword.touched) {
+                        <small class="text-red-500 text-sm">La contraseña actual es obligatoria.</small>
+                    }
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="newPassword" class="text-sm font-semibold">Nueva contraseña</label>
+                    <p-password id="newPassword" formControlName="newPassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
+                    @if (passwordForm.controls.newPassword.invalid && passwordForm.controls.newPassword.touched) {
+                        <small class="text-red-500 text-sm">Mínimo 8 caracteres.</small>
+                    }
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label for="confirmNewPassword" class="text-sm font-semibold">Confirmar nueva contraseña</label>
+                    <p-password id="confirmNewPassword" formControlName="confirmNewPassword" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
+                    @if (passwordForm.errors?.['passwordMismatch'] && passwordForm.controls.confirmNewPassword.touched) {
+                        <small class="text-red-500 text-sm">Las contraseñas no coinciden.</small>
+                    }
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6">
+                <button pButton type="submit" label="Cambiar contraseña" [loading]="savingPassword()"></button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h5>Festivos</h5>
+        <p class="text-muted-color mb-4">Gestiona los días festivos que se excluyen del calendario de riego.</p>
+        <button pButton type="button" label="Ver festivos" icon="pi pi-calendar" routerLink="/system-settings/holidays"></button>
+    </div>
+</div>

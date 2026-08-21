@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { toDetailResult, toListResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse, PagedApiResponse } from '../../../../shared/models/api-response.model';
-import { AppUser, CreateUserRequest, UpdateUserRequest } from '../../../../shared/models/user.model';
+import { AppUser, ChangePasswordRequest, CreateUserRequest, UpdateUserRequest } from '../../../../shared/models/user.model';
 import { DetailResult, ListResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -55,5 +55,11 @@ export class UserService {
 
     resetPassword(id: string, newPassword: string): Observable<OperationResult<boolean>> {
         return toOperationResult(this.http.put<ApiResponse<boolean>>(`${this.apiUrl}/ResetPassword/${id}`, { newPassword }));
+    }
+
+    // Distinto de resetPassword: siempre opera sobre el propio usuario en sesión (nunca admite un
+    // id en la ruta) y exige la contraseña actual -- ChangePasswordCommand la verifica en servidor.
+    changePassword(request: ChangePasswordRequest): Observable<OperationResult<boolean>> {
+        return toOperationResult(this.http.put<ApiResponse<boolean>>(`${this.apiUrl}/ChangePassword`, request));
     }
 }

@@ -29,3 +29,11 @@ export interface UpdateUserRequest {
     email: string;
     organizationId: string;
 }
+
+// "Cambiar mi contraseña": distinto de resetPassword (un admin reseteando la de otro) -- este
+// siempre opera sobre el propio usuario autenticado y exige la contraseña actual.
+export interface ChangePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+    confirmNewPassword: string;
+}
