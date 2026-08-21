@@ -1,1 +1,83 @@
-<p>license-list works!</p>
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template pTemplate="start">
+            <h5 class="m-0">Licencias</h5>
+        </ng-template>
+        <ng-template pTemplate="end">
+            @if (canManage) {
+                <button pButton type="button" label="Asignar licencia" icon="pi pi-plus" routerLink="/licences/new"></button>
+            }
+        </ng-template>
+    </p-toolbar>
+
+    @if (!canManage) {
+        <p-message severity="warn" text="No tienes permiso para gestionar licencias." styleClass="mb-4 w-full"></p-message>
+    }
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <p-table
+        [value]="licenses()"
+        [lazy]="true"
+        [paginator]="true"
+        [rows]="10"
+        [totalRecords]="totalRecords()"
+        [loading]="loading()"
+        (onLazyLoad)="onLazyLoad($event)"
+        dataKey="id"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        [stripedRows]="true"
+        [rowHover]="true"
+        responsiveLayout="scroll"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Organización</th>
+                <th>Tipo de licencia</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Estado</th>
+                <th style="width: 16rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-license>
+            <tr>
+                <td>{{ organizationName(license.organizationId) }}</td>
+                <td>{{ licenceTypeName(license.licenceTypeId) }}</td>
+                <td>{{ license.startDate | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ license.endDate | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                    <p-tag [severity]="statusSeverity(license)" [value]="statusLabel(license)"></p-tag>
+                </td>
+                <td>
+                    @if (canManage) {
+                        @if (license.isActive) {
+                            <button pButton type="button" label="Desactivar" severity="secondary" class="p-button-text" [loading]="actingId() === license.id" (click)="deactivate(license)"></button>
+                        } @else {
+                            <button pButton type="button" label="Activar" class="p-button-text" [loading]="actingId() === license.id" (click)="activate(license)"></button>
+                        }
+                        <button pButton type="button" label="Renovar" icon="pi pi-refresh" class="p-button-text" (click)="openRenewDialog(license)"></button>
+                    }
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td colspan="6" class="text-center">No hay licencias asignadas.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog header="Renovar licencia" [(visible)]="renewDialogVisible" [modal]="true" [style]="{ width: '25rem' }">
+    <div class="flex flex-col gap-2 mb-4">
+        <label for="extraDays" class="text-sm font-semibold">Días adicionales</label>
+        <p-inputnumber id="extraDays" [(ngModel)]="renewExtraDays" [min]="1" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+    </div>
+    <div class="flex justify-end gap-3">
+        <button pButton type="button" label="Cancelar" severity="secondary" (click)="renewDialogVisible.set(false)"></button>
+        <button pButton type="button" label="Confirmar" [loading]="renewing()" (click)="confirmRenew()"></button>
+    </div>
+</p-dialog>

@@ -126,5 +126,19 @@ describe('AppMenu', () => {
             currentSession.establish(buildToken('COORDINADOR_RIEGO'));
             expect(itemVisible(component, 'Riego', 'Calendario de Riego')).toBe(true);
         });
+
+        it('shows the whole "Plataforma" group with "Licencias" only for SUPERADMIN', () => {
+            currentSession.establish(buildToken('SUPERADMIN'));
+            expect(itemVisible(component, 'Plataforma', 'Licencias')).toBe(true);
+        });
+
+        it('omits the entire "Plataforma" group (not just the item) for PRESIDENTE', () => {
+            currentSession.establish(buildToken('PRESIDENTE'));
+            expect(component.model().some((g) => g.label === 'Plataforma')).toBe(false);
+        });
+
+        it('omits the entire "Plataforma" group when no role is established yet', () => {
+            expect(component.model().some((g) => g.label === 'Plataforma')).toBe(false);
+        });
     });
 });

@@ -1,0 +1,59 @@
+<div class="card">
+    <h5>Asignar licencia</h5>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="organizationId" class="text-sm font-semibold">Organización</label>
+                <p-select
+                    id="organizationId"
+                    formControlName="organizationId"
+                    [options]="organizations()"
+                    optionLabel="name"
+                    optionValue="id"
+                    [loading]="organizationsLoading()"
+                    placeholder="Selecciona una organización"
+                    styleClass="w-full"
+                ></p-select>
+                @if (form.controls.organizationId.invalid && form.controls.organizationId.touched) {
+                    <small class="text-red-500 text-sm">Selecciona una organización.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="licenceTypeId" class="text-sm font-semibold">Tipo de licencia</label>
+                <p-select
+                    id="licenceTypeId"
+                    formControlName="licenceTypeId"
+                    [options]="licenceTypes()"
+                    optionLabel="name"
+                    optionValue="id"
+                    [loading]="licenceTypesLoading()"
+                    placeholder="Selecciona un tipo de licencia"
+                    styleClass="w-full"
+                    (onChange)="onLicenceTypeChange($event.value)"
+                ></p-select>
+                @if (form.controls.licenceTypeId.invalid && form.controls.licenceTypeId.touched) {
+                    <small class="text-red-500 text-sm">Selecciona un tipo de licencia.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="durationDays" class="text-sm font-semibold">Duración (días)</label>
+                <p-inputnumber id="durationDays" formControlName="durationDays" [min]="1" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                @if (form.controls.durationDays.invalid && form.controls.durationDays.touched) {
+                    <small class="text-red-500 text-sm">La duración debe ser mayor que 0.</small>
+                }
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+            <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>
+            <button pButton type="submit" label="Asignar licencia" [loading]="saving()"></button>
+        </div>
+    </form>
+</div>

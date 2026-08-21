@@ -76,7 +76,10 @@ export class AppMenu {
         {
             label: 'Sistema',
             items: [{ label: 'Configuración del Sistema', icon: 'pi pi-fw pi-cog', routerLink: ['/system-settings'] }]
-        }
+        },
+        // Back-office cross-tenant: solo SUPERADMIN, nunca Presidente/Vicepresidente. Todo el grupo
+        // se omite (no solo el ítem) para no dejar un encabezado "Plataforma" vacío.
+        ...(this.isSuperAdmin() ? [{ label: 'Plataforma', items: [{ label: 'Licencias', icon: 'pi pi-fw pi-verified', routerLink: ['/licences'] }] }] : [])
     ]);
 
     private canBroadcast(): boolean {
@@ -92,5 +95,9 @@ export class AppMenu {
     // de roles que "Aprobar Turnos" -- ahí es SUPERADMIN o COORDINADOR_RIEGO, no Presidente/Vice.
     private canManageIrrigationPrograms(): boolean {
         return IRRIGATION_PROGRAM_ROLES.includes(this.currentSession.role() ?? '');
+    }
+
+    private isSuperAdmin(): boolean {
+        return this.currentSession.role() === 'SUPERADMIN';
     }
 }

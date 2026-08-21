@@ -83,7 +83,11 @@ export const appRoutes: Routes = [
             {
                 path: 'system-settings/holidays/:id',
                 loadComponent: () => import('./app/features/level1-core/holiday-calendars/pages/holiday-form/holiday-form.component').then((c) => c.HolidayFormComponent)
-            }
+            },
+
+            // PLATAFORMA (back-office SUPERADMIN, cross-tenant)
+            { path: 'licences', loadComponent: () => import('./app/features/level2-structure/assigned-licenses/pages/license-list/license-list.component').then((c) => c.LicenseListComponent) },
+            { path: 'licences/new', loadComponent: () => import('./app/features/level2-structure/assigned-licenses/pages/license-assign/license-assign.component').then((c) => c.LicenseAssignComponent) }
         ]
     },
 
