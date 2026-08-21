@@ -3,10 +3,24 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { OperationResult } from '../../../../shared/models/result.model';
+import { AppNotification } from '../../../../shared/models/notification.model';
+import { ListResult, OperationResult } from '../../../../shared/models/result.model';
 import { NotificationService } from './notification.service';
 
 const BASE_URL = `${environment.apiUrl}/v1/Notifications`;
+
+const notification: AppNotification = {
+    id: 'notification-1',
+    title: 'Corte de agua programado',
+    message: 'Mañana no habrá suministro entre las 9:00 y las 13:00.',
+    type: 'Info',
+    isRead: false,
+    readAt: null,
+    userId: 'user-1',
+    organizationId: 'org-1',
+    created: '2026-08-20T10:00:00Z',
+    createdBy: 'system'
+};
 
 describe('NotificationService', () => {
     let service: NotificationService;
@@ -122,6 +136,102 @@ describe('NotificationService', () => {
             service.send('x', 'Organization').subscribe((r) => (result = r));
 
             httpMock.expectOne(`${BASE_URL}/Send`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('listMine()', () => {
+        it('sends PageNumber/PageSize/UnreadOnly and maps a successful page', () => {
+            let result: ListResult<AppNotification> | undefined;
+
+            service.listMine(1, 10, false).subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/Mine`);
+            expect(req.request.params.get('PageNumber')).toBe('1');
+            expect(req.request.params.get('UnreadOnly')).toBe('false');
+            req.flush({ data: [notification], isSuccess: true, message: 'ok', pageNumber: 1, totalPages: 1, totalCount: 1, pageSize: 10 });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', items: [notification], totalCount: 1 });
+        });
+
+        it('resolves an empty page as success with no items', () => {
+            let result: ListResult<AppNotification> | undefined;
+
+            service.listMine().subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/Mine`).flush({ data: [], isSuccess: true, message: 'ok', pageNumber: 1, totalPages: 0, totalCount: 0, pageSize: 10 });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', items: [], totalCount: 0 });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: ListResult<AppNotification> | undefined;
+
+            service.listMine().subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/Mine`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('markAsRead()', () => {
+        it('PUTs to MarkAsRead/{id} with a null body', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.markAsRead('notification-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/MarkAsRead/notification-1`);
+            expect(req.request.method).toBe('PUT');
+            expect(req.request.body).toBeNull();
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
+        });
+
+        it('on an ownership failure (notificación ajena), resolves with the real backend message -- the backend returns HTTP 200 with isSuccess:false here, not a 404', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.markAsRead('notification-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/MarkAsRead/notification-1`).flush({ isSuccess: false, message: 'No se encontró la notificación con el id notification-1.' });
+
+            expect(result?.isSuccess).toBe(false);
+            expect(result?.message).toBe('No se encontró la notificación con el id notification-1.');
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.markAsRead('notification-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/MarkAsRead/notification-1`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('markAllAsRead()', () => {
+        it('PUTs to MarkAllAsRead with a null body', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.markAllAsRead().subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/MarkAllAsRead`);
+            expect(req.request.method).toBe('PUT');
+            expect(req.request.body).toBeNull();
+            req.flush({ data: true, isSuccess: true, message: 'Notificaciones marcadas como leídas.' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'Notificaciones marcadas como leídas.', data: true });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.markAllAsRead().subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/MarkAllAsRead`).error(new ProgressEvent('error'));
 
             expect(result?.isSuccess).toBe(false);
         });

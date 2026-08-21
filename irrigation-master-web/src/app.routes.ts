@@ -57,7 +57,10 @@ export const appRoutes: Routes = [
             // { path: 'sensors', loadComponent: () => import('./app/features/level4-operational/sensors/pages/sensors/sensors.component').then(c => c.SensorsComponent) },
 
             // NIVEL 5: EQUIPMENT
-            { path: 'notifications', component: ComingSoonComponent, data: { title: 'Notificaciones' } },
+            {
+                path: 'notifications',
+                loadComponent: () => import('./app/features/level5-equipment/notifications/pages/notification-center/notification-center.component').then((c) => c.NotificationCenterComponent)
+            },
             {
                 path: 'notifications/report-incident',
                 loadComponent: () => import('./app/features/level5-equipment/notifications/pages/report-incident/report-incident.component').then((c) => c.ReportIncidentComponent)
