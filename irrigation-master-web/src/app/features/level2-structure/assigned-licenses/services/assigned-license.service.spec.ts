@@ -13,6 +13,7 @@ const license: AssignedLicense = {
     id: 'license-1',
     organizationId: 'org-1',
     licenceTypeId: 'licence-type-1',
+    userId: null,
     startDate: '2026-01-01T00:00:00Z',
     endDate: '2026-12-31T00:00:00Z',
     isActive: true,
@@ -94,6 +95,19 @@ describe('AssignedLicenseService', () => {
             httpMock.expectOne(`${BASE_URL}/Create`).flush({ isSuccess: false, message: 'La organización ya tiene una licencia activa.' }, { status: 400, statusText: 'Bad Request' });
 
             expect(result).toEqual({ isSuccess: false, message: 'La organización ya tiene una licencia activa.' });
+        });
+
+        it('POSTs with userId when creating an individual license', () => {
+            let result: OperationResult<string> | undefined;
+            const individualRequest: CreateAssignedLicenseRequest = { organizationId: 'org-1', licenceTypeId: 'licence-type-1', durationDays: 365, userId: 'user-1' };
+
+            service.create(individualRequest).subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/Create`);
+            expect(req.request.body).toEqual(individualRequest);
+            req.flush({ data: 'new-license-id', isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: 'new-license-id' });
         });
 
         it('on a network failure, resolves with isSuccess:false instead of throwing', () => {

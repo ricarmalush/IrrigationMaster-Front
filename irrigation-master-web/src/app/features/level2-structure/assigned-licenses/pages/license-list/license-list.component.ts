@@ -14,6 +14,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { AssignedLicense } from '../../../../../shared/models/assigned-license.model';
 import { LicenceTypeService } from '../../../../level1-core/licence-types/services/licence-type.service';
+import { UserService } from '../../../../level3-functional/users/services/user.service';
 import { OrganizationService } from '../../../organizations/services/organization.service';
 import { AssignedLicenseService } from '../../services/assigned-license.service';
 
@@ -43,6 +44,7 @@ export class LicenseListComponent implements OnInit {
     private licenseService = inject(AssignedLicenseService);
     private organizationService = inject(OrganizationService);
     private licenceTypeService = inject(LicenceTypeService);
+    private userService = inject(UserService);
     private currentSession = inject(CurrentSessionService);
     private messageService = inject(MessageService);
 
@@ -54,6 +56,7 @@ export class LicenseListComponent implements OnInit {
     readonly errorMessage = signal<string | null>(null);
     readonly organizationNames = signal<Record<string, string>>({});
     readonly licenceTypeNames = signal<Record<string, string>>({});
+    readonly userNames = signal<Record<string, string>>({});
     readonly actingId = signal<string | null>(null);
 
     readonly renewDialogVisible = signal(false);
@@ -71,6 +74,11 @@ export class LicenseListComponent implements OnInit {
         this.licenceTypeService.list(1, 100).subscribe((result) => {
             this.licenceTypeNames.set(Object.fromEntries(result.items.map((t) => [t.id, t.name])));
         });
+        // Sin OrganizationId: para SUPERADMIN devuelve usuarios de todas las organizaciones, igual
+        // que necesitamos aquí (las licencias individuales pueden ser de cualquier organización).
+        this.userService.list(1, 100).subscribe((result) => {
+            this.userNames.set(Object.fromEntries(result.items.map((u) => [u.id, u.fullName])));
+        });
     }
 
     onLazyLoad(event: TableLazyLoadEvent): void {
@@ -85,6 +93,15 @@ export class LicenseListComponent implements OnInit {
 
     licenceTypeName(licenceTypeId: string): string {
         return this.licenceTypeNames()[licenceTypeId] ?? licenceTypeId;
+    }
+
+    // Ámbito de la licencia: de organización (UserId null, cubre a todos sus vecinos) o
+    // individual, acotada a un único usuario dentro de esa organización.
+    scopeLabel(license: AssignedLicense): string {
+        if (!license.userId) {
+            return 'Organización';
+        }
+        return `Individual: ${this.userNames()[license.userId] ?? license.userId}`;
     }
 
     status(license: AssignedLicense): LicenseStatus {

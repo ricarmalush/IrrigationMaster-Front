@@ -35,6 +35,7 @@
         <ng-template pTemplate="header">
             <tr>
                 <th>Organización</th>
+                <th>Ámbito</th>
                 <th>Tipo de licencia</th>
                 <th>Inicio</th>
                 <th>Fin</th>
@@ -45,6 +46,7 @@
         <ng-template pTemplate="body" let-license>
             <tr>
                 <td>{{ organizationName(license.organizationId) }}</td>
+                <td>{{ scopeLabel(license) }}</td>
                 <td>{{ licenceTypeName(license.licenceTypeId) }}</td>
                 <td>{{ license.startDate | date: 'dd/MM/yyyy' }}</td>
                 <td>{{ license.endDate | date: 'dd/MM/yyyy' }}</td>
@@ -65,7 +67,7 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="6" class="text-center">No hay licencias asignadas.</td>
+                <td colspan="7" class="text-center">No hay licencias asignadas.</td>
             </tr>
         </ng-template>
     </p-table>

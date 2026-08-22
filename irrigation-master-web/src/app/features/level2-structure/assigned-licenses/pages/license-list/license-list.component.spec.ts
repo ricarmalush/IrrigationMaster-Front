@@ -7,8 +7,10 @@ import { CurrentSessionService } from '../../../../../core/services/current-sess
 import { AssignedLicense } from '../../../../../shared/models/assigned-license.model';
 import { LicenceType } from '../../../../../shared/models/licence-type.model';
 import { Organization } from '../../../../../shared/models/organization.model';
+import { AppUser } from '../../../../../shared/models/user.model';
 import { ListResult, OperationResult } from '../../../../../shared/models/result.model';
 import { LicenceTypeService } from '../../../../level1-core/licence-types/services/licence-type.service';
+import { UserService } from '../../../../level3-functional/users/services/user.service';
 import { OrganizationService } from '../../../organizations/services/organization.service';
 import { AssignedLicenseService } from '../../services/assigned-license.service';
 import { LicenseListComponent } from './license-list.component';
@@ -38,11 +40,27 @@ const licenceType: LicenceType = {
     created: '2026-01-01'
 };
 
+const user: AppUser = {
+    id: 'user-1',
+    firstName: 'Ricardo',
+    lastName: 'Ruiz',
+    email: 'ricardo@example.com',
+    organizationId: 'org-1',
+    role: 'VECINO',
+    isActive: true,
+    fullName: 'Ricardo Ruiz',
+    created: '2026-01-01',
+    walkwayId: null,
+    walkwayCode: null,
+    organizationName: 'Comunidad de Regantes'
+};
+
 function license(overrides: Partial<AssignedLicense>): AssignedLicense {
     return {
         id: 'license-1',
         organizationId: 'org-1',
         licenceTypeId: 'licence-type-1',
+        userId: null,
         startDate: '2026-01-01T00:00:00Z',
         endDate: '2026-12-31T00:00:00Z',
         isActive: true,
@@ -58,6 +76,7 @@ describe('LicenseListComponent', () => {
     let licenseService: jasmine.SpyObj<AssignedLicenseService>;
     let organizationService: jasmine.SpyObj<OrganizationService>;
     let licenceTypeService: jasmine.SpyObj<LicenceTypeService>;
+    let userService: jasmine.SpyObj<UserService>;
     let currentSession: jasmine.SpyObj<CurrentSessionService>;
     let messageService: jasmine.SpyObj<MessageService>;
 
@@ -67,6 +86,8 @@ describe('LicenseListComponent', () => {
         organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: true, message: 'ok', items: [organization], totalCount: 1 }));
         licenceTypeService = jasmine.createSpyObj('LicenceTypeService', ['list']);
         licenceTypeService.list.and.returnValue(of<ListResult<LicenceType>>({ isSuccess: true, message: 'ok', items: [licenceType], totalCount: 1 }));
+        userService = jasmine.createSpyObj('UserService', ['list']);
+        userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [user], totalCount: 1 }));
         currentSession = jasmine.createSpyObj('CurrentSessionService', ['getRole']);
         currentSession.getRole.and.returnValue(role);
         messageService = jasmine.createSpyObj('MessageService', ['add']);
@@ -78,6 +99,7 @@ describe('LicenseListComponent', () => {
                 { provide: AssignedLicenseService, useValue: licenseService },
                 { provide: OrganizationService, useValue: organizationService },
                 { provide: LicenceTypeService, useValue: licenceTypeService },
+                { provide: UserService, useValue: userService },
                 { provide: CurrentSessionService, useValue: currentSession },
                 { provide: MessageService, useValue: messageService }
             ]
@@ -119,6 +141,33 @@ describe('LicenseListComponent', () => {
 
             expect(component.organizationName('missing-org')).toBe('missing-org');
             expect(component.licenceTypeName('missing-type')).toBe('missing-type');
+        });
+
+        it('loads user names for resolution too (individual licenses can belong to any organization)', () => {
+            setup('SUPERADMIN');
+
+            component.ngOnInit();
+
+            expect(component.scopeLabel(license({ userId: 'user-1' }))).toBe('Individual: Ricardo Ruiz');
+        });
+    });
+
+    describe('scopeLabel()', () => {
+        beforeEach(() => {
+            setup('SUPERADMIN');
+            component.ngOnInit();
+        });
+
+        it('shows "Organización" when userId is null', () => {
+            expect(component.scopeLabel(license({ userId: null }))).toBe('Organización');
+        });
+
+        it('shows "Individual: {nombre resuelto}" when userId is set', () => {
+            expect(component.scopeLabel(license({ userId: 'user-1' }))).toBe('Individual: Ricardo Ruiz');
+        });
+
+        it('falls back to the raw user id when unresolved', () => {
+            expect(component.scopeLabel(license({ userId: 'missing-user' }))).toBe('Individual: missing-user');
         });
     });
 
