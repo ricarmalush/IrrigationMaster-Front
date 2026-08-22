@@ -1,1 +1,160 @@
-<p>invoice-list works!</p>
+<div class="card">
+    <p-toolbar styleClass="mb-4">
+        <ng-template pTemplate="start">
+            <h5 class="m-0">Facturación</h5>
+        </ng-template>
+        <ng-template pTemplate="end">
+            @if (canManage) {
+                <button pButton type="button" label="Nueva factura" icon="pi pi-plus" routerLink="/invoices/new"></button>
+            }
+        </ng-template>
+    </p-toolbar>
+
+    @if (!canViewInvoices) {
+        <p-message severity="warn" text="No tienes permiso para ver las facturas de tu organización." styleClass="mb-4 w-full"></p-message>
+    } @else {
+        @if (errorMessage()) {
+            <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+        }
+
+        <p-table
+            [value]="invoices()"
+            [lazy]="true"
+            [paginator]="true"
+            [rows]="10"
+            [totalRecords]="totalRecords()"
+            [loading]="loading()"
+            (onLazyLoad)="onLazyLoad($event)"
+            dataKey="id"
+            [rowsPerPageOptions]="[10, 20, 50]"
+            [stripedRows]="true"
+            [rowHover]="true"
+            responsiveLayout="scroll"
+        >
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Organización</th>
+                    <th>Ámbito</th>
+                    <th>Nº factura</th>
+                    <th>Importe</th>
+                    <th>Estado</th>
+                    <th>Emisión</th>
+                    <th>Vencimiento</th>
+                    <th>Licencia origen</th>
+                    <th style="width: 20rem"></th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-invoice>
+                <tr>
+                    <td>{{ organizationName(invoice.organizationId) }}</td>
+                    <td>{{ scopeLabel(invoice) }}</td>
+                    <td>{{ invoice.invoiceNumber }}</td>
+                    <td>{{ invoice.totalAmountValue }} {{ invoice.totalAmountCurrency }}</td>
+                    <td>
+                        <p-tag [severity]="statusSeverity(invoice)" [value]="statusLabel(invoice)"></p-tag>
+                    </td>
+                    <td>{{ invoice.issueDate | date: 'dd/MM/yyyy' }}</td>
+                    <td>{{ invoice.dueDate | date: 'dd/MM/yyyy' }}</td>
+                    <td>{{ licenceOriginLabel(invoice) }}</td>
+                    <td>
+                        @if (canIssue(invoice)) {
+                            <button pButton type="button" label="Emitir" class="p-button-text" [loading]="actingId() === invoice.id" (click)="issue(invoice)"></button>
+                        }
+                        @if (canCancel(invoice)) {
+                            <button pButton type="button" label="Cancelar" severity="danger" class="p-button-text" [loading]="actingId() === invoice.id" (click)="cancel(invoice)"></button>
+                        }
+                        @if (canRegister(invoice)) {
+                            <button pButton type="button" label="Registrar pago" icon="pi pi-credit-card" class="p-button-text" (click)="openRegisterDialog(invoice)"></button>
+                        }
+                        <button pButton type="button" label="Ver pagos" icon="pi pi-list" class="p-button-text" (click)="openPaymentsDialog(invoice)"></button>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="9" class="text-center">No hay facturas.</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    }
+</div>
+
+<p-dialog header="Registrar pago" [(visible)]="registerDialogVisible" [modal]="true" [style]="{ width: '28rem' }">
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="registerAmountValue" class="text-sm font-semibold">Importe</label>
+            <p-inputnumber id="registerAmountValue" [ngModel]="registerAmountValue()" (ngModelChange)="registerAmountValue.set($event)" mode="decimal" [minFractionDigits]="2" [min]="0.01" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+            @if (registerTouched() && registerAmountValue() <= 0) {
+                <small class="text-red-500 text-sm">El importe debe ser mayor que 0.</small>
+            }
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="registerAmountCurrency" class="text-sm font-semibold">Moneda</label>
+            <input pInputText id="registerAmountCurrency" [ngModel]="registerAmountCurrency()" (ngModelChange)="registerAmountCurrency.set($event)" maxlength="3" class="w-full" placeholder="EUR" />
+            @if (registerTouched() && !registerAmountCurrency().trim()) {
+                <small class="text-red-500 text-sm">La moneda es obligatoria.</small>
+            }
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="registerMethod" class="text-sm font-semibold">Método</label>
+            <p-select id="registerMethod" [ngModel]="registerMethod()" (ngModelChange)="registerMethod.set($event)" [options]="paymentMethodOptions" optionLabel="label" optionValue="value" styleClass="w-full"></p-select>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="registerTransactionId" class="text-sm font-semibold">Referencia / Nº de transacción</label>
+            <input pInputText id="registerTransactionId" [ngModel]="registerTransactionId()" (ngModelChange)="registerTransactionId.set($event)" class="w-full" placeholder="Ej. TX-0001" />
+            @if (registerTouched() && !registerTransactionId().trim()) {
+                <small class="text-red-500 text-sm">La referencia es obligatoria.</small>
+            }
+        </div>
+    </div>
+    <div class="flex justify-end gap-3 mt-6">
+        <button pButton type="button" label="Cancelar" severity="secondary" (click)="registerDialogVisible.set(false)"></button>
+        <button pButton type="button" label="Registrar" [loading]="registering()" (click)="confirmRegister()"></button>
+    </div>
+</p-dialog>
+
+<p-dialog header="Pagos de la factura" [(visible)]="paymentsDialogVisible" [modal]="true" [style]="{ width: '40rem' }">
+    <p-table [value]="payments()" [loading]="paymentsLoading()" dataKey="id" [stripedRows]="true" responsiveLayout="scroll">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Importe</th>
+                <th>Método</th>
+                <th>Referencia</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                @if (isSuperAdmin) {
+                    <th></th>
+                }
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-payment>
+            <tr>
+                <td>{{ payment.amountValue }} {{ payment.amountCurrency }}</td>
+                <td>{{ payment.method }}</td>
+                <td>{{ payment.transactionId }}</td>
+                <td>{{ payment.paymentDate | date: 'dd/MM/yyyy' }}</td>
+                <td>
+                    <p-tag [severity]="paymentStatusSeverity(payment)" [value]="paymentStatusLabel(payment)"></p-tag>
+                </td>
+                @if (isSuperAdmin) {
+                    <td>
+                        @if (payment.status === 'Pending') {
+                            <button pButton type="button" label="Confirmar" class="p-button-text" [loading]="confirmingPaymentId() === payment.id" (click)="confirmPayment(payment)"></button>
+                        }
+                    </td>
+                }
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td [attr.colspan]="isSuperAdmin ? 6 : 5" class="text-center">Esta factura no tiene pagos registrados.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+    <div class="flex justify-end mt-6">
+        <button pButton type="button" label="Cerrar" severity="secondary" (click)="paymentsDialogVisible.set(false)"></button>
+    </div>
+</p-dialog>

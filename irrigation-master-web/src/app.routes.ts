@@ -69,7 +69,8 @@ export const appRoutes: Routes = [
                 path: 'notifications/community-broadcast',
                 loadComponent: () => import('./app/features/level5-equipment/notifications/pages/community-broadcast/community-broadcast.component').then((c) => c.CommunityBroadcastComponent)
             },
-            // { path: 'invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoices/invoices.component').then(c => c.InvoicesComponent) },
+            { path: 'invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoice-list/invoice-list.component').then((c) => c.InvoiceListComponent) },
+            { path: 'invoices/new', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoice-create/invoice-create.component').then((c) => c.InvoiceCreateComponent) },
             // { path: 'audit-logs', loadComponent: () => import('./app/features/level5-equipment/audit-logs/pages/audit-logs/audit-logs.component').then(c => c.AuditLogsComponent) },
             { path: 'system-settings', loadComponent: () => import('./app/features/system-settings/pages/system-settings/system-settings.component').then((c) => c.SystemSettingsComponent) },
             {

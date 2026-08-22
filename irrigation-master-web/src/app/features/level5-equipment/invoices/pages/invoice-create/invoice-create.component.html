@@ -1,0 +1,115 @@
+<div class="card">
+    <h5>Nueva factura</h5>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="flex flex-col gap-2 mb-6">
+            <label class="text-sm font-semibold">Ámbito</label>
+            <p-selectbutton formControlName="scope" [options]="scopeOptions" optionLabel="label" optionValue="value" (onChange)="onScopeChange($event.value)"></p-selectbutton>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+            <div class="flex flex-col gap-2">
+                <label for="organizationId" class="text-sm font-semibold">Organización</label>
+                <p-select
+                    id="organizationId"
+                    formControlName="organizationId"
+                    [options]="organizations()"
+                    optionLabel="name"
+                    optionValue="id"
+                    [loading]="organizationsLoading()"
+                    placeholder="Selecciona una organización"
+                    styleClass="w-full"
+                    (onChange)="onOrganizationChange($event.value)"
+                ></p-select>
+                @if (form.controls.organizationId.invalid && form.controls.organizationId.touched) {
+                    <small class="text-red-500 text-sm">Selecciona una organización.</small>
+                }
+            </div>
+
+            @if (form.controls.scope.value === 'individual') {
+                <div class="flex flex-col gap-2">
+                    <label for="userId" class="text-sm font-semibold">Usuario</label>
+                    <p-select
+                        id="userId"
+                        formControlName="userId"
+                        [options]="users()"
+                        optionLabel="fullName"
+                        optionValue="id"
+                        [loading]="usersLoading()"
+                        [disabled]="!form.controls.organizationId.value"
+                        placeholder="Selecciona un usuario"
+                        styleClass="w-full"
+                    ></p-select>
+                    @if (form.controls.userId.touched && !form.controls.userId.value) {
+                        <small class="text-red-500 text-sm">Selecciona un usuario.</small>
+                    }
+                </div>
+            }
+
+            <div class="flex flex-col gap-2">
+                <label for="assignedLicenseId" class="text-sm font-semibold">Licencia de origen (opcional)</label>
+                <p-select
+                    id="assignedLicenseId"
+                    formControlName="assignedLicenseId"
+                    [options]="licenseOptions()"
+                    optionLabel="label"
+                    optionValue="id"
+                    [loading]="licensesLoading()"
+                    [disabled]="!form.controls.organizationId.value"
+                    placeholder="Sin vincular a ninguna licencia"
+                    styleClass="w-full"
+                    [showClear]="true"
+                ></p-select>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="invoiceNumber" class="text-sm font-semibold">Nº de factura</label>
+                <input pInputText id="invoiceNumber" formControlName="invoiceNumber" class="w-full" placeholder="Ej. INV-0001" />
+                @if (form.controls.invoiceNumber.invalid && form.controls.invoiceNumber.touched) {
+                    <small class="text-red-500 text-sm">El número de factura es obligatorio.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="issueDate" class="text-sm font-semibold">Fecha de emisión</label>
+                <p-datepicker id="issueDate" formControlName="issueDate" dateFormat="dd/mm/yy" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
+                @if (form.controls.issueDate.invalid && form.controls.issueDate.touched) {
+                    <small class="text-red-500 text-sm">La fecha de emisión es obligatoria.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="dueDate" class="text-sm font-semibold">Fecha de vencimiento</label>
+                <p-datepicker id="dueDate" formControlName="dueDate" dateFormat="dd/mm/yy" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
+                @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
+                    <small class="text-red-500 text-sm">La fecha de vencimiento es obligatoria.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="totalAmountValue" class="text-sm font-semibold">Importe</label>
+                <p-inputnumber id="totalAmountValue" formControlName="totalAmountValue" mode="decimal" [minFractionDigits]="2" [min]="0.01" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                @if (form.controls.totalAmountValue.invalid && form.controls.totalAmountValue.touched) {
+                    <small class="text-red-500 text-sm">El importe debe ser mayor que 0.</small>
+                }
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="totalAmountCurrency" class="text-sm font-semibold">Moneda</label>
+                <input pInputText id="totalAmountCurrency" formControlName="totalAmountCurrency" maxlength="3" class="w-full" placeholder="EUR" />
+                @if (form.controls.totalAmountCurrency.invalid && form.controls.totalAmountCurrency.touched) {
+                    <small class="text-red-500 text-sm">La moneda es obligatoria.</small>
+                }
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+            <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>
+            <button pButton type="submit" label="Crear factura" [loading]="saving()"></button>
+        </div>
+    </form>
+</div>

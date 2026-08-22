@@ -11,6 +11,11 @@ const BROADCAST_ROLES = ADMIN_ROLES;
 // Mismos roles que ShowIrrigationPrograms en AdminMenuPage.xaml.cs (ligado al permiso de backend
 // MANAGE_IRRIGATION_PROGRAMS).
 const IRRIGATION_PROGRAM_ROLES = ['SUPERADMIN', 'COORDINADOR_RIEGO'];
+// Sin equivalente en la App (pantalla nueva, back-office/autoservicio). En los datos semilla del
+// backend ningún rol de organización tiene asignados VIEW_ORG_INVOICES/REGISTER_PAYMENTS por
+// defecto -- este es el conjunto aprobado para el gating del Front (confirmado con el usuario,
+// sin VicePresidente).
+const INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO'];
 
 @Component({
     selector: 'app-menu',
@@ -77,6 +82,10 @@ export class AppMenu {
             label: 'Sistema',
             items: [{ label: 'Configuración del Sistema', icon: 'pi pi-fw pi-cog', routerLink: ['/system-settings'] }]
         },
+        // Autoservicio de organización + back-office: SUPERADMIN ve todas las organizaciones,
+        // el resto de roles solo las suyas propias (la propia pantalla cambia de fuente según el
+        // rol). Todo el grupo se omite para quien no tenga ninguno de los dos permisos.
+        ...(this.canViewInvoices() ? [{ label: 'Facturación', items: [{ label: 'Facturas', icon: 'pi pi-fw pi-file-invoice', routerLink: ['/invoices'] }] }] : []),
         // Back-office cross-tenant: solo SUPERADMIN, nunca Presidente/Vicepresidente. Todo el grupo
         // se omite (no solo el ítem) para no dejar un encabezado "Plataforma" vacío.
         ...(this.isSuperAdmin() ? [{ label: 'Plataforma', items: [{ label: 'Licencias', icon: 'pi pi-fw pi-verified', routerLink: ['/licences'] }] }] : [])
@@ -99,5 +108,9 @@ export class AppMenu {
 
     private isSuperAdmin(): boolean {
         return this.currentSession.role() === 'SUPERADMIN';
+    }
+
+    private canViewInvoices(): boolean {
+        return INVOICE_ROLES.includes(this.currentSession.role() ?? '');
     }
 }

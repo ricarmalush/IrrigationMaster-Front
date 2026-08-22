@@ -140,5 +140,24 @@ describe('AppMenu', () => {
         it('omits the entire "Plataforma" group when no role is established yet', () => {
             expect(component.model().some((g) => g.label === 'Plataforma')).toBe(false);
         });
+
+        it('shows "Facturación" for SUPERADMIN/PRESIDENTE/COORDINADOR_RIEGO', () => {
+            for (const role of ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO']) {
+                currentSession.establish(buildToken(role));
+                expect(itemVisible(component, 'Facturación', 'Facturas')).toBe(true);
+            }
+        });
+
+        it('omits the entire "Facturación" group (not just the item) for VECINO, VICEPRESIDENTE or no role', () => {
+            expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
+
+            currentSession.establish(buildToken('VECINO'));
+            expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
+
+            // A diferencia de "Aprobar Turnos"/"Avisar a mi comunidad" (ADMIN_ROLES), Facturación
+            // usa un conjunto de roles distinto que deliberadamente no incluye a VicePresidente.
+            currentSession.establish(buildToken('VICEPRESIDENTE'));
+            expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
+        });
     });
 });
