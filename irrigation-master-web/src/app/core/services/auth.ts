@@ -18,6 +18,11 @@ interface AuthApiResponse {
 export interface LoginResult {
   isSuccess: boolean;
   message: string;
+  // true solo cuando el backend respondió 402 (GlobalMessages.NoActiveLicence): ni la
+  // organización ni el propio usuario tienen una licencia vigente. Distinto de un 401 de
+  // credenciales/cuenta inactiva -- el componente de login lo usa para diferenciar visualmente
+  // "contacta con soporte" de un simple error de autenticación.
+  isLicenceError?: boolean;
 }
 
 @Injectable({
@@ -42,13 +47,14 @@ export class AuthService {
         }
       }),
       map((response) => ({ isSuccess: response.isSuccess, message: response.message }) as LoginResult),
-      // El login fallido llega como error HTTP (401), no como respuesta 2xx con isSuccess:false:
-      // el AuthController devuelve Unauthorized(result), así que el mensaje real del backend
-      // (p.ej. "El correo electrónico o la contraseña son incorrectos.") viaja en error.error.message.
+      // El login fallido llega como error HTTP (401 o 402), no como respuesta 2xx con
+      // isSuccess:false: el AuthController devuelve Unauthorized(result) o, para el caso de
+      // licencia (GlobalMessages.NoActiveLicence), StatusCode(402, result) -- en ambos casos el
+      // mensaje real del backend viaja en error.error.message.
       catchError((error: HttpErrorResponse) => {
         const backendMessage = error.error?.message as string | undefined;
         const message = backendMessage || (error.status === 0 ? NETWORK_ERROR_MESSAGE : UNEXPECTED_ERROR_MESSAGE);
-        return of<LoginResult>({ isSuccess: false, message });
+        return of<LoginResult>({ isSuccess: false, message, isLicenceError: error.status === 402 });
       })
     );
   }

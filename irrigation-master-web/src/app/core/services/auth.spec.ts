@@ -3,13 +3,14 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 
-import { AuthService, NETWORK_ERROR_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './auth';
+import { AuthService, LoginResult, NETWORK_ERROR_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './auth';
 import { CurrentSessionService } from './current-session';
 import { environment } from '../../../environments/environment';
 
 const LOGIN_URL = `${environment.apiUrl}/v1/Auth/Login`;
 const BACKEND_INVALID_CREDENTIALS_MESSAGE = 'El correo electrónico o la contraseña son incorrectos.';
 const BACKEND_SUCCESS_MESSAGE = 'Operación completada exitosamente.';
+const BACKEND_NO_ACTIVE_LICENCE_MESSAGE = 'Tu organización no dispone de una licencia activa, y no tienes una licencia individual propia. Contacta con soporte.';
 
 describe('AuthService', () => {
     let service: AuthService;
@@ -41,7 +42,7 @@ describe('AuthService', () => {
 
     it('login(): on success, resolves isSuccess + the real backend message, stores the token and establishes the session', () => {
         const token = 'header.payload.signature';
-        let result: { isSuccess: boolean; message: string } | undefined;
+        let result: LoginResult | undefined;
 
         service.login('user@example.com', 'secret').subscribe((r) => (result = r));
 
@@ -56,38 +57,50 @@ describe('AuthService', () => {
     });
 
     it('login(): on a 401 with a backend message (bad credentials), surfaces that exact message', () => {
-        let result: { isSuccess: boolean; message: string } | undefined;
+        let result: LoginResult | undefined;
 
         service.login('user@example.com', 'wrong').subscribe((r) => (result = r));
 
         const req = httpMock.expectOne(LOGIN_URL);
         req.flush({ isSuccess: false, message: BACKEND_INVALID_CREDENTIALS_MESSAGE }, { status: 401, statusText: 'Unauthorized' });
 
-        expect(result).toEqual({ isSuccess: false, message: BACKEND_INVALID_CREDENTIALS_MESSAGE });
+        expect(result).toEqual({ isSuccess: false, message: BACKEND_INVALID_CREDENTIALS_MESSAGE, isLicenceError: false });
         expect(localStorage.getItem('jwt_token')).toBeNull();
         expect(currentSession.establish).not.toHaveBeenCalled();
     });
 
+    it('login(): on a 402 (sin licencia activa, ni de organización ni individual), surfaces the real message with isLicenceError:true', () => {
+        let result: { isSuccess: boolean; message: string; isLicenceError?: boolean } | undefined;
+
+        service.login('user@example.com', 'secret').subscribe((r) => (result = r));
+
+        const req = httpMock.expectOne(LOGIN_URL);
+        req.flush({ isSuccess: false, message: BACKEND_NO_ACTIVE_LICENCE_MESSAGE }, { status: 402, statusText: 'Payment Required' });
+
+        expect(result).toEqual({ isSuccess: false, message: BACKEND_NO_ACTIVE_LICENCE_MESSAGE, isLicenceError: true });
+        expect(currentSession.establish).not.toHaveBeenCalled();
+    });
+
     it('login(): on an error response with no message body, falls back to the generic error message', () => {
-        let result: { isSuccess: boolean; message: string } | undefined;
+        let result: LoginResult | undefined;
 
         service.login('user@example.com', 'secret').subscribe((r) => (result = r));
 
         const req = httpMock.expectOne(LOGIN_URL);
         req.flush({}, { status: 500, statusText: 'Internal Server Error' });
 
-        expect(result).toEqual({ isSuccess: false, message: UNEXPECTED_ERROR_MESSAGE });
+        expect(result).toEqual({ isSuccess: false, message: UNEXPECTED_ERROR_MESSAGE, isLicenceError: false });
     });
 
     it('login(): on a network-level failure (no response reached), falls back to the network error message', () => {
-        let result: { isSuccess: boolean; message: string } | undefined;
+        let result: LoginResult | undefined;
 
         service.login('user@example.com', 'secret').subscribe((r) => (result = r));
 
         const req = httpMock.expectOne(LOGIN_URL);
         req.error(new ProgressEvent('error'));
 
-        expect(result).toEqual({ isSuccess: false, message: NETWORK_ERROR_MESSAGE });
+        expect(result).toEqual({ isSuccess: false, message: NETWORK_ERROR_MESSAGE, isLicenceError: false });
         expect(currentSession.establish).not.toHaveBeenCalled();
     });
 

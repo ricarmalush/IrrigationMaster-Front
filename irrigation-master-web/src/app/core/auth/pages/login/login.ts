@@ -42,10 +42,13 @@ export class Login {
                 return;
             }
 
+            // 402 (GlobalMessages.NoActiveLicence): ni la organización ni el propio usuario tienen
+            // licencia vigente -- no es un fallo de credenciales, así que se distingue con un icono
+            // y título propios en vez del genérico "Error de Autenticación".
             Swal.fire({
-                title: 'Error de Autenticación',
+                title: result.isLicenceError ? 'Licencia no disponible' : 'Error de Autenticación',
                 text: result.message,
-                icon: 'error',
+                icon: result.isLicenceError ? 'warning' : 'error',
                 confirmButtonColor: '#00bfa5'
             });
         });
