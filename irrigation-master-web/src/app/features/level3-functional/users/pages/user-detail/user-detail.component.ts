@@ -62,7 +62,6 @@ export class UserDetailComponent implements OnInit {
     ngOnInit(): void {
         this.loadOrganizations();
         this.loadRoles();
-        this.loadWalkways();
 
         this.userId = this.route.snapshot.paramMap.get('id');
         if (this.userId) {
@@ -70,6 +69,16 @@ export class UserDetailComponent implements OnInit {
             this.form.controls.roleId.disable();
             this.form.controls.password.disable();
             this.loadUser(this.userId);
+        }
+    }
+
+    // El desplegable "Andador actual" solo existe en modo edición -- sin esto, un SUPERADMIN vería
+    // andadores de TODAS las organizaciones mezclados (sin indicar a cuál pertenece cada uno) y
+    // podría elegir uno de una organización distinta a la del usuario, que AssignWalkwayCommand
+    // rechaza correctamente ("No existe ningún registro de 'Pasarela'...").
+    onOrganizationChange(organizationId: string): void {
+        if (this.isEditMode() && organizationId) {
+            this.loadWalkways(organizationId);
         }
     }
 
@@ -170,8 +179,8 @@ export class UserDetailComponent implements OnInit {
         this.roleService.list(1, 100).subscribe((result) => this.roles.set(result.items));
     }
 
-    private loadWalkways(): void {
-        this.walkwayService.list(1, 100).subscribe((result) => this.walkways.set(result.items));
+    private loadWalkways(organizationId: string): void {
+        this.walkwayService.list(1, 100, organizationId).subscribe((result) => this.walkways.set(result.items));
     }
 
     private loadUser(id: string): void {
@@ -184,6 +193,7 @@ export class UserDetailComponent implements OnInit {
                 this.currentRole.set(result.data.role);
                 this.currentWalkwayCode.set(result.data.walkwayCode ?? null);
                 this.walkwayActionControl.setValue(result.data.walkwayId ?? null);
+                this.loadWalkways(result.data.organizationId);
             } else {
                 this.errorMessage.set(result.message);
             }

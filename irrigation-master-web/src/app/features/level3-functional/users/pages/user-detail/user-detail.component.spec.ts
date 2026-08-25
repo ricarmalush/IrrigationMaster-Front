@@ -82,13 +82,12 @@ describe('UserDetailComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('loads the organizations/roles/walkways catalogs on init', () => {
+    it('loads the organizations/roles catalogs on init', () => {
         setup(null);
         component.ngOnInit();
 
         expect(component.organizations()).toEqual(organizations);
         expect(component.roles()).toEqual(roles);
-        expect(component.walkways()).toEqual(walkways);
     });
 
     describe('create mode', () => {
@@ -100,6 +99,19 @@ describe('UserDetailComponent', () => {
         it('does not fetch an existing user', () => {
             expect(component.isEditMode()).toBe(false);
             expect(userService.getById).not.toHaveBeenCalled();
+        });
+
+        // El desplegable "Andador actual" no existe en modo creación (solo aparece en @if
+        // (isEditMode()) del bloque de Acciones) -- cargar de golpe con organizationId
+        // desconocida mezclaría andadores de cualquier organización sin poder filtrarlos.
+        it('does not load the walkways catalog (no organization known yet, and the selector does not apply here)', () => {
+            expect(walkwayService.list).not.toHaveBeenCalled();
+        });
+
+        it('onOrganizationChange() does nothing in create mode', () => {
+            component.onOrganizationChange('org-1');
+
+            expect(walkwayService.list).not.toHaveBeenCalled();
         });
 
         it('does not submit an invalid form', () => {
@@ -143,6 +155,22 @@ describe('UserDetailComponent', () => {
             expect(component.currentRole()).toBe('VECINO');
             expect(component.form.controls.roleId.disabled).toBe(true);
             expect(component.form.controls.password.disabled).toBe(true);
+        });
+
+        it('loads the walkways catalog filtered by the loaded user own organization', () => {
+            expect(walkwayService.list).toHaveBeenCalledWith(1, 100, 'org-1');
+            expect(component.walkways()).toEqual(walkways);
+        });
+
+        it('onOrganizationChange(): reloads the walkways catalog filtered by the newly selected organization', () => {
+            walkwayService.list.calls.reset();
+            const otherOrgWalkways: Walkway[] = [{ id: 'walkway-9', code: 'B-01', length: 50, hydraulicSectorId: 'sector-9', organizationId: 'org-2', isActive: true, created: '' }];
+            walkwayService.list.and.returnValue(of<ListResult<Walkway>>({ isSuccess: true, message: 'ok', items: otherOrgWalkways, totalCount: 1 }));
+
+            component.onOrganizationChange('org-2');
+
+            expect(walkwayService.list).toHaveBeenCalledWith(1, 100, 'org-2');
+            expect(component.walkways()).toEqual(otherOrgWalkways);
         });
 
         it('on save, calls update() with only the editable profile fields', () => {
