@@ -14,8 +14,11 @@ export class WalkwayService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/v1/walkways`;
 
-    list(pageNumber = 1, pageSize = 10): Observable<ListResult<Walkway>> {
-        const params = new HttpParams().set('PageNumber', pageNumber).set('PageSize', pageSize);
+    list(pageNumber = 1, pageSize = 10, organizationId?: string): Observable<ListResult<Walkway>> {
+        let params = new HttpParams().set('PageNumber', pageNumber).set('PageSize', pageSize);
+        if (organizationId) {
+            params = params.set('OrganizationId', organizationId);
+        }
         return toListResult(this.http.get<PagedApiResponse<Walkway>>(`${this.apiUrl}/pagination`, { params }));
     }
 

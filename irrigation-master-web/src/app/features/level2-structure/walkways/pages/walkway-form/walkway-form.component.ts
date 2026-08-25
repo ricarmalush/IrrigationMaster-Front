@@ -7,8 +7,11 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
+import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { HydraulicSector } from '../../../../../shared/models/hydraulic-sector.model';
+import { Organization } from '../../../../../shared/models/organization.model';
 import { HydraulicSectorService } from '../../../hydraulic-sectors/services/hydraulic-sector.service';
+import { OrganizationService } from '../../../organizations/services/organization.service';
 import { WalkwayService } from '../../services/walkway.service';
 
 @Component({
@@ -21,9 +24,16 @@ export class WalkwayFormComponent implements OnInit {
     private fb = inject(FormBuilder);
     private walkwayService = inject(WalkwayService);
     private hydraulicSectorService = inject(HydraulicSectorService);
+    private organizationService = inject(OrganizationService);
+    private currentSession = inject(CurrentSessionService);
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private messageService = inject(MessageService);
+
+    // Modelo híbrido de resolución de OrganizationId (mismo patrón que CreateUserCommand): solo
+    // SUPERADMIN puede elegir la organización destino -- cualquier otro autenticado siempre crea
+    // en la suya propia vía ICurrentUser, sin selector.
+    readonly isSuperAdmin = this.currentSession.getRole() === 'SUPERADMIN';
 
     readonly isEditMode = signal(false);
     readonly loading = signal(false);
@@ -31,23 +41,51 @@ export class WalkwayFormComponent implements OnInit {
     readonly errorMessage = signal<string | null>(null);
     readonly sectors = signal<HydraulicSector[]>([]);
     readonly sectorsLoading = signal(false);
+    readonly organizations = signal<Organization[]>([]);
+    readonly organizationsLoading = signal(false);
 
     private walkwayId: string | null = null;
 
     readonly form = this.fb.nonNullable.group({
         code: ['', Validators.required],
         length: [0, [Validators.required, Validators.min(0.01)]],
-        hydraulicSectorId: ['', Validators.required]
+        hydraulicSectorId: ['', Validators.required],
+        organizationId: ['', Validators.required]
     });
 
     ngOnInit(): void {
-        this.loadSectors();
-
         this.walkwayId = this.route.snapshot.paramMap.get('id');
+
         if (this.walkwayId) {
+            // La organización no se puede cambiar tras la creación (UpdateWalkwayRequest no la
+            // incluye) -- el selector solo aplica al crear. Los sectores se cargan sin filtro,
+            // igual que antes: el andador ya pertenece a uno concreto de su propia organización.
             this.isEditMode.set(true);
             this.form.controls.hydraulicSectorId.disable();
+            this.form.controls.organizationId.clearValidators();
+            this.form.controls.organizationId.updateValueAndValidity();
+            this.loadSectors();
             this.loadWalkway(this.walkwayId);
+            return;
+        }
+
+        if (this.isSuperAdmin) {
+            // Sin organización elegida todavía, el desplegable de sectores arranca vacío -- cargar
+            // sin filtro mostraría los sectores de la propia organización del SUPERADMIN, no los
+            // de la organización que finalmente elija.
+            this.loadOrganizations();
+        } else {
+            this.form.controls.organizationId.clearValidators();
+            this.form.controls.organizationId.updateValueAndValidity();
+            this.loadSectors();
+        }
+    }
+
+    onOrganizationChange(organizationId: string): void {
+        this.form.controls.hydraulicSectorId.setValue('');
+        this.sectors.set([]);
+        if (organizationId) {
+            this.loadSectors(organizationId);
         }
     }
 
@@ -74,7 +112,9 @@ export class WalkwayFormComponent implements OnInit {
         if (this.isEditMode()) {
             this.walkwayService.update(this.walkwayId!, { code: value.code, length: value.length }).subscribe(onResult);
         } else {
-            this.walkwayService.create(value).subscribe(onResult);
+            this.walkwayService
+                .create({ code: value.code, length: value.length, hydraulicSectorId: value.hydraulicSectorId, organizationId: value.organizationId || undefined })
+                .subscribe(onResult);
         }
     }
 
@@ -82,9 +122,17 @@ export class WalkwayFormComponent implements OnInit {
         this.router.navigate(['/walkways']);
     }
 
-    private loadSectors(): void {
+    private loadOrganizations(): void {
+        this.organizationsLoading.set(true);
+        this.organizationService.list(1, 100).subscribe((result) => {
+            this.organizationsLoading.set(false);
+            this.organizations.set(result.items);
+        });
+    }
+
+    private loadSectors(organizationId?: string): void {
         this.sectorsLoading.set(true);
-        this.hydraulicSectorService.list(1, 100).subscribe((result) => {
+        this.hydraulicSectorService.list(1, 100, organizationId).subscribe((result) => {
             this.sectorsLoading.set(false);
             this.sectors.set(result.items);
         });

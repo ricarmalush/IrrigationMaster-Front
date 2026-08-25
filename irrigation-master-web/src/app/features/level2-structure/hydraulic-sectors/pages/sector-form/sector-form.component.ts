@@ -6,38 +6,64 @@ import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { SelectModule } from 'primeng/select';
+import { CurrentSessionService } from '../../../../../core/services/current-session';
+import { Organization } from '../../../../../shared/models/organization.model';
+import { OrganizationService } from '../../../organizations/services/organization.service';
 import { HydraulicSectorService } from '../../services/hydraulic-sector.service';
 
 @Component({
     selector: 'app-sector-form',
     standalone: true,
-    imports: [ReactiveFormsModule, RouterModule, ButtonModule, InputTextModule, InputNumberModule, MessageModule],
+    imports: [ReactiveFormsModule, RouterModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, MessageModule],
     templateUrl: './sector-form.component.html'
 })
 export class SectorFormComponent implements OnInit {
     private fb = inject(FormBuilder);
     private sectorService = inject(HydraulicSectorService);
+    private organizationService = inject(OrganizationService);
+    private currentSession = inject(CurrentSessionService);
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private messageService = inject(MessageService);
+
+    // Modelo híbrido de resolución de OrganizationId (mismo patrón que CreateUserCommand): solo
+    // SUPERADMIN puede elegir la organización destino -- cualquier otro autenticado siempre crea
+    // en la suya propia vía ICurrentUser, sin selector.
+    readonly isSuperAdmin = this.currentSession.getRole() === 'SUPERADMIN';
 
     readonly isEditMode = signal(false);
     readonly loading = signal(false);
     readonly saving = signal(false);
     readonly errorMessage = signal<string | null>(null);
+    readonly organizations = signal<Organization[]>([]);
+    readonly organizationsLoading = signal(false);
 
     private sectorId: string | null = null;
 
     readonly form = this.fb.nonNullable.group({
         name: ['', Validators.required],
-        areaSize: [0, [Validators.required, Validators.min(0.01)]]
+        areaSize: [0, [Validators.required, Validators.min(0.01)]],
+        organizationId: ['', Validators.required]
     });
 
     ngOnInit(): void {
         this.sectorId = this.route.snapshot.paramMap.get('id');
         if (this.sectorId) {
+            // La organización no se puede cambiar tras la creación (UpdateHydraulicSectorRequest
+            // no la incluye) -- el selector solo aplica al crear.
             this.isEditMode.set(true);
+            this.form.controls.organizationId.clearValidators();
+            this.form.controls.organizationId.updateValueAndValidity();
             this.loadSector(this.sectorId);
+            return;
+        }
+
+        if (this.isSuperAdmin) {
+            this.loadOrganizations();
+        } else {
+            this.form.controls.organizationId.clearValidators();
+            this.form.controls.organizationId.updateValueAndValidity();
         }
     }
 
@@ -62,14 +88,22 @@ export class SectorFormComponent implements OnInit {
         };
 
         if (this.isEditMode()) {
-            this.sectorService.update(this.sectorId!, { id: this.sectorId!, ...value }).subscribe(onResult);
+            this.sectorService.update(this.sectorId!, { id: this.sectorId!, name: value.name, areaSize: value.areaSize }).subscribe(onResult);
         } else {
-            this.sectorService.create(value).subscribe(onResult);
+            this.sectorService.create({ name: value.name, areaSize: value.areaSize, organizationId: value.organizationId || undefined }).subscribe(onResult);
         }
     }
 
     cancel(): void {
         this.router.navigate(['/hydraulic-sectors']);
+    }
+
+    private loadOrganizations(): void {
+        this.organizationsLoading.set(true);
+        this.organizationService.list(1, 100).subscribe((result) => {
+            this.organizationsLoading.set(false);
+            this.organizations.set(result.items);
+        });
     }
 
     private loadSector(id: string): void {

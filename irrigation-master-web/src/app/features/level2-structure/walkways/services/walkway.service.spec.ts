@@ -59,6 +59,22 @@ describe('WalkwayService', () => {
 
             expect(result?.isSuccess).toBe(false);
         });
+
+        it('sends OrganizationId when provided', () => {
+            service.list(1, 10, 'org-1').subscribe();
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/pagination`);
+            expect(req.request.params.get('OrganizationId')).toBe('org-1');
+            req.flush({ data: [], isSuccess: true, message: 'ok', pageNumber: 1, totalPages: 0, totalCount: 0, pageSize: 10 });
+        });
+
+        it('omits OrganizationId from the query when not provided', () => {
+            service.list().subscribe();
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/pagination`);
+            expect(req.request.params.has('OrganizationId')).toBe(false);
+            req.flush({ data: [], isSuccess: true, message: 'ok', pageNumber: 1, totalPages: 0, totalCount: 0, pageSize: 10 });
+        });
     });
 
     describe('getById()', () => {

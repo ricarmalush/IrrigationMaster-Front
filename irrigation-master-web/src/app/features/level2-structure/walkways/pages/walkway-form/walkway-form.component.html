@@ -23,6 +23,26 @@
                 }
             </div>
 
+            @if (isSuperAdmin && !isEditMode()) {
+                <div class="flex flex-col gap-2">
+                    <label for="organizationId" class="text-sm font-semibold">Organización</label>
+                    <p-select
+                        id="organizationId"
+                        formControlName="organizationId"
+                        [options]="organizations()"
+                        optionLabel="name"
+                        optionValue="id"
+                        [loading]="organizationsLoading()"
+                        placeholder="Selecciona una organización"
+                        styleClass="w-full"
+                        (onChange)="onOrganizationChange($event.value)"
+                    ></p-select>
+                    @if (form.controls.organizationId.invalid && form.controls.organizationId.touched) {
+                        <small class="text-red-500 text-sm">Selecciona una organización.</small>
+                    }
+                </div>
+            }
+
             <div class="flex flex-col gap-2">
                 <label for="hydraulicSectorId" class="text-sm font-semibold">Sector hidráulico</label>
                 <p-select
@@ -32,6 +52,7 @@
                     optionLabel="name"
                     optionValue="id"
                     [loading]="sectorsLoading()"
+                    [disabled]="isSuperAdmin && !isEditMode() && !form.controls.organizationId.value"
                     placeholder="Selecciona un sector"
                     styleClass="w-full"
                 ></p-select>

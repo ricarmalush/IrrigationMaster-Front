@@ -14,8 +14,11 @@ export class HydraulicSectorService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/v1/hydraulicsectors`;
 
-    list(pageNumber = 1, pageSize = 10): Observable<ListResult<HydraulicSector>> {
-        const params = new HttpParams().set('PageNumber', pageNumber).set('PageSize', pageSize);
+    list(pageNumber = 1, pageSize = 10, organizationId?: string): Observable<ListResult<HydraulicSector>> {
+        let params = new HttpParams().set('PageNumber', pageNumber).set('PageSize', pageSize);
+        if (organizationId) {
+            params = params.set('OrganizationId', organizationId);
+        }
         return toListResult(this.http.get<PagedApiResponse<HydraulicSector>>(`${this.apiUrl}/pagination`, { params }));
     }
 
