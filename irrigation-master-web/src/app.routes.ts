@@ -87,6 +87,9 @@ export const appRoutes: Routes = [
             },
 
             // PLATAFORMA (back-office SUPERADMIN, cross-tenant)
+            { path: 'licence-types', loadComponent: () => import('./app/features/level1-core/licence-types/pages/licence-list/licence-list.component').then((c) => c.LicenceListComponent) },
+            { path: 'licence-types/new', loadComponent: () => import('./app/features/level1-core/licence-types/pages/licence-type-form/licence-type-form.component').then((c) => c.LicenceTypeFormComponent) },
+            { path: 'licence-types/:id', loadComponent: () => import('./app/features/level1-core/licence-types/pages/licence-type-form/licence-type-form.component').then((c) => c.LicenceTypeFormComponent) },
             { path: 'licences', loadComponent: () => import('./app/features/level2-structure/assigned-licenses/pages/license-list/license-list.component').then((c) => c.LicenseListComponent) },
             { path: 'licences/new', loadComponent: () => import('./app/features/level2-structure/assigned-licenses/pages/license-assign/license-assign.component').then((c) => c.LicenseAssignComponent) }
         ]

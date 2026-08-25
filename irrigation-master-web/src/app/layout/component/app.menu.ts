@@ -87,8 +87,19 @@ export class AppMenu {
         // rol). Todo el grupo se omite para quien no tenga ninguno de los dos permisos.
         ...(this.canViewInvoices() ? [{ label: 'Facturación', items: [{ label: 'Facturas', icon: 'pi pi-fw pi-file-invoice', routerLink: ['/invoices'] }] }] : []),
         // Back-office cross-tenant: solo SUPERADMIN, nunca Presidente/Vicepresidente. Todo el grupo
-        // se omite (no solo el ítem) para no dejar un encabezado "Plataforma" vacío.
-        ...(this.isSuperAdmin() ? [{ label: 'Plataforma', items: [{ label: 'Licencias', icon: 'pi pi-fw pi-verified', routerLink: ['/licences'] }] }] : [])
+        // se omite (no solo el ítem) para no dejar un encabezado "Plataforma" vacío. "Tipos de
+        // Licencia" va antes que "Licencias": primero se define el tipo, luego se asigna.
+        ...(this.isSuperAdmin()
+            ? [
+                  {
+                      label: 'Plataforma',
+                      items: [
+                          { label: 'Tipos de Licencia', icon: 'pi pi-fw pi-tags', routerLink: ['/licence-types'] },
+                          { label: 'Licencias', icon: 'pi pi-fw pi-verified', routerLink: ['/licences'] }
+                      ]
+                  }
+              ]
+            : [])
     ]);
 
     private canBroadcast(): boolean {

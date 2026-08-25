@@ -132,6 +132,15 @@ describe('AppMenu', () => {
             expect(itemVisible(component, 'Plataforma', 'Licencias')).toBe(true);
         });
 
+        it('shows "Tipos de Licencia" in "Plataforma" only for SUPERADMIN, listed before "Licencias"', () => {
+            currentSession.establish(buildToken('SUPERADMIN'));
+            expect(itemVisible(component, 'Plataforma', 'Tipos de Licencia')).toBe(true);
+
+            const plataforma = component.model().find((g) => g.label === 'Plataforma');
+            const labels = plataforma?.items?.map((i) => i.label);
+            expect(labels).toEqual(['Tipos de Licencia', 'Licencias']);
+        });
+
         it('omits the entire "Plataforma" group (not just the item) for PRESIDENTE', () => {
             currentSession.establish(buildToken('PRESIDENTE'));
             expect(component.model().some((g) => g.label === 'Plataforma')).toBe(false);
