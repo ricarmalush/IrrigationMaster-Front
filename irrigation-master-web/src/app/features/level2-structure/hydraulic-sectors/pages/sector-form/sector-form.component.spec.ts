@@ -173,7 +173,7 @@ describe('SectorFormComponent', () => {
             expect(component.errorMessage()).toBe('No se encontró el sector.');
         });
 
-        it('on save, calls update() with the route id and without organizationId', () => {
+        it('on save, calls update() with the route id and preserves the sector own organizationId (not editable here)', () => {
             setup('sector-1');
             sectorService.getById.and.returnValue(of<DetailResult<HydraulicSector>>({ isSuccess: true, message: 'ok', data: sector }));
             sectorService.update.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
@@ -181,7 +181,24 @@ describe('SectorFormComponent', () => {
 
             component.save();
 
-            expect(sectorService.update).toHaveBeenCalledWith('sector-1', { id: 'sector-1', name: 'Sector Norte', areaSize: 12.5 });
+            expect(sectorService.update).toHaveBeenCalledWith('sector-1', { id: 'sector-1', name: 'Sector Norte', areaSize: 12.5, organizationId: 'org-1' });
+        });
+
+        // Regresión: editar (SUPERADMIN) un sector de una organización DISTINTA a la suya propia
+        // fallaba con "No se ha encontrado el registro solicitado" porque el payload de update()
+        // nunca incluía organizationId -- el backend caía a la organización del propio SUPERADMIN
+        // en vez de la real del sector. El valor no se elige en un selector: viaja intacto desde
+        // el GET inicial hasta el PUT.
+        it('cross-organización: preserva el organizationId real del sector cargado (no el del SUPERADMIN que edita)', () => {
+            const crossOrgSector: HydraulicSector = { id: 'sector-9', name: 'Sector Ajeno', areaSize: 30, organizationId: 'org-ajena-9', isDeleted: false };
+            setup('sector-9');
+            sectorService.getById.and.returnValue(of<DetailResult<HydraulicSector>>({ isSuccess: true, message: 'ok', data: crossOrgSector }));
+            sectorService.update.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
+            component.ngOnInit();
+
+            component.save();
+
+            expect(sectorService.update).toHaveBeenCalledWith('sector-9', { id: 'sector-9', name: 'Sector Ajeno', areaSize: 30, organizationId: 'org-ajena-9' });
         });
     });
 });

@@ -138,6 +138,14 @@ describe('HydraulicSectorService', () => {
 
             expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
         });
+
+        it('includes organizationId in the body when provided (preservado del sector, no elegido por el usuario)', () => {
+            service.update('sector-1', { id: 'sector-1', name: 'Editado', areaSize: 10, organizationId: 'org-1' }).subscribe();
+
+            const req = httpMock.expectOne(`${BASE_URL}/Update/sector-1`);
+            expect(req.request.body).toEqual({ id: 'sector-1', name: 'Editado', areaSize: 10, organizationId: 'org-1' });
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+        });
     });
 
     describe('delete()', () => {

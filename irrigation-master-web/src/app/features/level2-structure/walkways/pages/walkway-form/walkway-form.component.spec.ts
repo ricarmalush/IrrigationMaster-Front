@@ -211,7 +211,7 @@ describe('WalkwayFormComponent', () => {
             expect(organizationService.list).not.toHaveBeenCalled();
         });
 
-        it('on save, calls update() without the sector id (not editable)', () => {
+        it('on save, calls update() without the sector id (not editable) and preserves the walkway own organizationId', () => {
             setup('walkway-1');
             walkwayService.getById.and.returnValue(of<DetailResult<Walkway>>({ isSuccess: true, message: 'ok', data: walkway }));
             walkwayService.update.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
@@ -219,7 +219,24 @@ describe('WalkwayFormComponent', () => {
 
             component.save();
 
-            expect(walkwayService.update).toHaveBeenCalledWith('walkway-1', { code: 'A-01', length: 120 });
+            expect(walkwayService.update).toHaveBeenCalledWith('walkway-1', { code: 'A-01', length: 120, organizationId: 'org-1' });
+        });
+
+        // Regresión: editar (SUPERADMIN) un andador de una organización DISTINTA a la suya propia
+        // fallaba con "No se ha encontrado el registro solicitado" porque el payload de update()
+        // nunca incluía organizationId -- el backend caía a la organización del propio SUPERADMIN
+        // en vez de la real del andador. El valor no se elige en un selector: viaja intacto desde
+        // el GET inicial hasta el PUT.
+        it('cross-organización: preserva el organizationId real del andador cargado (no el del SUPERADMIN que edita)', () => {
+            const crossOrgWalkway: Walkway = { id: 'walkway-9', code: 'B-01', length: 50, hydraulicSectorId: 'sector-9', organizationId: 'org-ajena-9', isActive: true, created: '2026-01-01' };
+            setup('walkway-9', 'SUPERADMIN');
+            walkwayService.getById.and.returnValue(of<DetailResult<Walkway>>({ isSuccess: true, message: 'ok', data: crossOrgWalkway }));
+            walkwayService.update.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
+            component.ngOnInit();
+
+            component.save();
+
+            expect(walkwayService.update).toHaveBeenCalledWith('walkway-9', { code: 'B-01', length: 50, organizationId: 'org-ajena-9' });
         });
     });
 });

@@ -50,8 +50,11 @@ export class SectorFormComponent implements OnInit {
     ngOnInit(): void {
         this.sectorId = this.route.snapshot.paramMap.get('id');
         if (this.sectorId) {
-            // La organización no se puede cambiar tras la creación (UpdateHydraulicSectorRequest
-            // no la incluye) -- el selector solo aplica al crear.
+            // El selector de Organización (visible solo al crear) no aplica aquí -- pero el
+            // control sigue en el FormGroup para recibir, vía patchValue en loadSector(), el
+            // organizationId REAL del sector cargado. Se preserva intacto en el payload de
+            // update() (ver save()): sin él, un SUPERADMIN editando un sector de otra
+            // organización recibiría NotFound falso (el backend cae a su propia organización).
             this.isEditMode.set(true);
             this.form.controls.organizationId.clearValidators();
             this.form.controls.organizationId.updateValueAndValidity();
@@ -88,7 +91,10 @@ export class SectorFormComponent implements OnInit {
         };
 
         if (this.isEditMode()) {
-            this.sectorService.update(this.sectorId!, { id: this.sectorId!, name: value.name, areaSize: value.areaSize }).subscribe(onResult);
+            // organizationId preservado tal cual venía del GET (loadSector) -- no se está editando
+            // la organización del sector aquí, solo se reenvía para que el backend pueda localizar
+            // el registro si es de una organización distinta a la del SUPERADMIN.
+            this.sectorService.update(this.sectorId!, { id: this.sectorId!, name: value.name, areaSize: value.areaSize, organizationId: value.organizationId || undefined }).subscribe(onResult);
         } else {
             this.sectorService.create({ name: value.name, areaSize: value.areaSize, organizationId: value.organizationId || undefined }).subscribe(onResult);
         }

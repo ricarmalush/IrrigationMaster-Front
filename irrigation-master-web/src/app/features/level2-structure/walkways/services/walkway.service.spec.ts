@@ -138,6 +138,14 @@ describe('WalkwayService', () => {
 
             expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
         });
+
+        it('includes organizationId in the body when provided (preservado del andador, no elegido por el usuario)', () => {
+            service.update('walkway-1', { code: 'A-01B', length: 100, organizationId: 'org-1' }).subscribe();
+
+            const req = httpMock.expectOne(`${BASE_URL}/Update/walkway-1`);
+            expect(req.request.body).toEqual({ code: 'A-01B', length: 100, organizationId: 'org-1' });
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+        });
     });
 
     describe('delete()', () => {

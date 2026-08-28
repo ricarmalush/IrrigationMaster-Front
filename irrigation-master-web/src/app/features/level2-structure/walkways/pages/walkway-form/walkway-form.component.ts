@@ -57,9 +57,12 @@ export class WalkwayFormComponent implements OnInit {
         this.walkwayId = this.route.snapshot.paramMap.get('id');
 
         if (this.walkwayId) {
-            // La organización no se puede cambiar tras la creación (UpdateWalkwayRequest no la
-            // incluye) -- el selector solo aplica al crear. Los sectores se cargan sin filtro,
-            // igual que antes: el andador ya pertenece a uno concreto de su propia organización.
+            // El selector de Organización (visible solo al crear) no aplica aquí -- pero el
+            // control sigue en el FormGroup para recibir, vía patchValue en loadWalkway(), el
+            // organizationId REAL del andador cargado. Se preserva intacto en el payload de
+            // update() (ver save()): sin él, un SUPERADMIN editando un andador de otra
+            // organización recibiría NotFound falso (el backend cae a su propia organización).
+            // Los sectores se cargan sin filtro: el andador ya pertenece a uno concreto.
             this.isEditMode.set(true);
             this.form.controls.hydraulicSectorId.disable();
             this.form.controls.organizationId.clearValidators();
@@ -110,7 +113,10 @@ export class WalkwayFormComponent implements OnInit {
         };
 
         if (this.isEditMode()) {
-            this.walkwayService.update(this.walkwayId!, { code: value.code, length: value.length }).subscribe(onResult);
+            // organizationId preservado tal cual venía del GET (loadWalkway) -- no se está
+            // editando la organización del andador aquí, solo se reenvía para que el backend
+            // pueda localizar el registro si es de una organización distinta a la del SUPERADMIN.
+            this.walkwayService.update(this.walkwayId!, { code: value.code, length: value.length, organizationId: value.organizationId || undefined }).subscribe(onResult);
         } else {
             this.walkwayService
                 .create({ code: value.code, length: value.length, hydraulicSectorId: value.hydraulicSectorId, organizationId: value.organizationId || undefined })
