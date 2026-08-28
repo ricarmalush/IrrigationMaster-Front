@@ -66,8 +66,18 @@ describe('SystemSettingsComponent', () => {
         expect(component.canRegenerateCode).toBe(true);
     });
 
-    it('exposes canRegenerateCode as false for a role without the seeded permission', () => {
+    it('exposes canRegenerateCode as true for PRESIDENTE', () => {
         setup('PRESIDENTE');
+        expect(component.canRegenerateCode).toBe(true);
+    });
+
+    it('exposes canRegenerateCode as true for VICEPRESIDENTE', () => {
+        setup('VICEPRESIDENTE');
+        expect(component.canRegenerateCode).toBe(true);
+    });
+
+    it('exposes canRegenerateCode as false for a role without the seeded permission', () => {
+        setup('VECINO');
         expect(component.canRegenerateCode).toBe(false);
     });
 
@@ -93,7 +103,7 @@ describe('SystemSettingsComponent', () => {
 
     describe('confirmRegenerateCode() / regenerateCode()', () => {
         it('does nothing when canRegenerateCode is false', () => {
-            setup('PRESIDENTE');
+            setup('VECINO');
 
             component.confirmRegenerateCode();
 

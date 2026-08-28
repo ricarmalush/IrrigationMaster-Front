@@ -9,9 +9,10 @@ import { CurrentSessionService } from '../../../../core/services/current-session
 import { OrganizationService } from '../../../level2-structure/organizations/services/organization.service';
 import { UserService } from '../../../level3-functional/users/services/user.service';
 
-// Solo SUPERADMIN tiene hoy el permiso MANAGE_ORGANIZATION_CODE sembrado (seed.json) -- ni
-// Presidente ni VicePresidente lo tienen todavía, aunque el backend lo soportaría para ellos.
-const REGENERATE_CODE_ROLES = ['SUPERADMIN'];
+// Desde el commit e81f042 (seed.json), Presidente y VicePresidente también tienen sembrado el
+// permiso MANAGE_ORGANIZATION_CODE -- RegenerateInvitationCodeCommandHandler ya los autoriza,
+// igual que ShowMyOrganization en la App MAUI para este mismo campo.
+const REGENERATE_CODE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
 
 function passwordsMatchValidator(group: AbstractControl): ValidationErrors | null {
     const newPassword = group.get('newPassword')?.value;
