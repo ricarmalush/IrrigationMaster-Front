@@ -1,0 +1,49 @@
+<div class="card">
+    <h5>Mi Riego</h5>
+
+    @if (errorMessage()) {
+        <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
+    }
+
+    @if (loading()) {
+        <p class="text-muted-color">Cargando...</p>
+    } @else if (!hasWalkway()) {
+        <p class="text-muted-color">No tienes andador asignado.</p>
+    } @else {
+        <p class="font-semibold mb-4">Andador: {{ walkwayCode() }}</p>
+
+        <div class="flex flex-col gap-4">
+            <div class="border border-surface rounded-border p-4">
+                <h6 class="m-0 mb-3 font-semibold text-primary">Solicitudes para mañana</h6>
+                @if (requestsTomorrow().length === 0) {
+                    <p class="text-muted-color text-sm">Sin solicitudes para mañana.</p>
+                } @else {
+                    <div class="flex flex-col gap-2">
+                        @for (turn of requestsTomorrow(); track turn.turnId) {
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <span class="font-semibold">{{ turn.fullName }}</span>
+                                <span class="text-muted-color text-sm">{{ turn.scheduledStart | date: 'HH:mm' }}</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="border border-surface rounded-border p-4">
+                <h6 class="m-0 mb-3 font-semibold text-primary">Riego en tiempo real</h6>
+                @if (liveToday().length === 0) {
+                    <p class="text-muted-color text-sm">Sin actividad todavía hoy.</p>
+                } @else {
+                    <div class="flex flex-col gap-2">
+                        @for (turn of liveToday(); track turn.turnId) {
+                            <div class="flex items-center justify-between flex-wrap gap-2" [class.text-muted-color]="turn.status === 'Completed'">
+                                <span class="font-semibold">{{ turn.fullName }}</span>
+                                <span class="text-sm">{{ statusLabel(turn.status) }}</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

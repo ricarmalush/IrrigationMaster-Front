@@ -90,14 +90,16 @@ describe('AppMenu', () => {
     });
 
     describe('andamiaje de navegación (espejo de AdminMenuPage de la App)', () => {
-        it('always shows "Estado de Riego", "Notificaciones" and "Configuración del Sistema", regardless of role', () => {
+        it('always shows "Estado de Riego", "Mi Riego", "Notificaciones" and "Configuración del Sistema", regardless of role', () => {
             expect(itemVisible(component, 'Riego', 'Estado de Riego')).toBe(true);
+            expect(itemVisible(component, 'Riego', 'Mi Riego')).toBe(true);
             expect(itemVisible(component, 'Notificaciones', 'Notificaciones')).toBe(true);
             expect(itemVisible(component, 'Sistema', 'Configuración del Sistema')).toBe(true);
 
             currentSession.establish(buildToken('VECINO'));
 
             expect(itemVisible(component, 'Riego', 'Estado de Riego')).toBe(true);
+            expect(itemVisible(component, 'Riego', 'Mi Riego')).toBe(true);
             expect(itemVisible(component, 'Notificaciones', 'Notificaciones')).toBe(true);
             expect(itemVisible(component, 'Sistema', 'Configuración del Sistema')).toBe(true);
         });

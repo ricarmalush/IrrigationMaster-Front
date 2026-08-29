@@ -70,6 +70,9 @@ export class AppMenu {
             label: 'Riego',
             items: [
                 { label: 'Estado de Riego', icon: 'pi pi-fw pi-chart-line', routerLink: ['/irrigation-status'] },
+                // Sin gating de rol, visible para los 3 (SUPERADMIN/Presidente/Vecino) -- igual que
+                // "Estado de Riego" y que OnMyIrrigationClicked en AdminMenuPage.xaml.cs de la App.
+                { label: 'Mi Riego', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/my-irrigation'] },
                 ...(this.canApproveTurns() ? [{ label: 'Aprobar Turnos', icon: 'pi pi-fw pi-check-square', routerLink: ['/irrigation-turns/approve'] }] : []),
                 ...(this.canManageIrrigationPrograms() ? [{ label: 'Calendario de Riego', icon: 'pi pi-fw pi-calendar', routerLink: ['/irrigation-programs'] }] : [])
             ]

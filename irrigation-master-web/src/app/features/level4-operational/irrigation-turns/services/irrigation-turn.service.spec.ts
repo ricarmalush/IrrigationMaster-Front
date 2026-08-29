@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { CreateIrrigationTurnRequest, PendingApprovalTurn, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
+import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurn, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../shared/models/result.model';
 import { IrrigationTurnService } from './irrigation-turn.service';
 
@@ -156,6 +156,58 @@ describe('IrrigationTurnService', () => {
             service.getOrganizationStatus().subscribe((r) => (result = r));
 
             httpMock.expectOne((r) => r.url === `${BASE_URL}/status`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('getMyWalkwayStatus()', () => {
+        const myStatus: MyWalkwayIrrigationStatus = {
+            walkwayId: 'walkway-1',
+            walkwayCode: 'A-01',
+            requestsTomorrow: [{ turnId: 'turn-1', userId: 'user-1', fullName: 'Ricardo Ruiz', status: 'Requested', scheduledStart: '2026-08-26T08:00:00Z', scheduledEnd: '2026-08-26T10:00:00Z' }],
+            liveToday: [walkwayStatus.neighbors[0]]
+        };
+
+        it('GETs /my-walkway-status without a Date param when none is given', () => {
+            let result: DetailResult<MyWalkwayIrrigationStatus> | undefined;
+
+            service.getMyWalkwayStatus().subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/my-walkway-status`);
+            expect(req.request.params.has('Date')).toBe(false);
+            req.flush({ data: myStatus, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: myStatus });
+        });
+
+        it('sends the Date param when given', () => {
+            service.getMyWalkwayStatus('2026-08-25').subscribe();
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/my-walkway-status`);
+            expect(req.request.params.get('Date')).toBe('2026-08-25');
+            req.flush({ data: myStatus, isSuccess: true, message: 'ok' });
+        });
+
+        // Estado válido (p. ej. un Presidente sin andador propio): 200 OK con walkwayId/walkwayCode
+        // null y ambas listas vacías -- no un error.
+        it('resolves walkwayId:null as success (sin andador asignado)', () => {
+            let result: DetailResult<MyWalkwayIrrigationStatus> | undefined;
+            const noWalkway: MyWalkwayIrrigationStatus = { walkwayId: null, walkwayCode: null, requestsTomorrow: [], liveToday: [] };
+
+            service.getMyWalkwayStatus().subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/my-walkway-status`).flush({ data: noWalkway, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: noWalkway });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: DetailResult<MyWalkwayIrrigationStatus> | undefined;
+
+            service.getMyWalkwayStatus().subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/my-walkway-status`).error(new ProgressEvent('error'));
 
             expect(result?.isSuccess).toBe(false);
         });

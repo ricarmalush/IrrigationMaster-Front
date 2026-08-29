@@ -41,3 +41,25 @@ export interface CreateIrrigationTurnRequest {
     requesterId: string;
     priority?: number;
 }
+
+// Espejo de WalkwayRequestedTurnDto (GET IrrigationTurns/my-walkway-status): a diferencia de
+// NeighborIrrigationStatus, Status aquí NO colapsa Requested/Pending -- expone el estado real del
+// dominio tal cual. La vista "Mi Riego" no lo muestra (mismo criterio que la App).
+export interface WalkwayRequestedTurn {
+    turnId: string;
+    userId: string;
+    fullName: string;
+    status: string;
+    scheduledStart: string;
+    scheduledEnd: string;
+}
+
+// Espejo de MyWalkwayIrrigationStatusDto: acotado SIEMPRE al andador del propio llamador (nunca un
+// parámetro). walkwayId/walkwayCode son null cuando el llamador no tiene andador asignado (p. ej.
+// un Presidente) -- estado válido, no un error: ambas listas vienen vacías en ese caso.
+export interface MyWalkwayIrrigationStatus {
+    walkwayId: string | null;
+    walkwayCode: string | null;
+    requestsTomorrow: WalkwayRequestedTurn[];
+    liveToday: NeighborIrrigationStatus[];
+}

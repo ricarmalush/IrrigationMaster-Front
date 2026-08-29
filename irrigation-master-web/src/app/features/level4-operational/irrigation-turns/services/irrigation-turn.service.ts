@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { toDetailResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse } from '../../../../shared/models/api-response.model';
-import { CreateIrrigationTurnRequest, PendingApprovalTurn, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
+import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurn, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -32,6 +32,17 @@ export class IrrigationTurnService {
     getOrganizationStatus(date?: string): Observable<DetailResult<WalkwayIrrigationStatus[]>> {
         const params = date ? new HttpParams().set('Date', date) : undefined;
         return toDetailResult(this.http.get<ApiResponse<WalkwayIrrigationStatus[]>>(`${this.apiUrl}/status`, { params }));
+    }
+
+    // GetMyWalkwayIrrigationStatusQuery: acotado SIEMPRE al andador del propio llamador (resuelto
+    // vía ICurrentUser en el backend, nunca un parámetro) -- walkwayId/walkwayCode vienen null
+    // cuando no tiene andador asignado (p. ej. un Presidente), estado válido, no un error.
+    // Complementa -- no sustituye -- getOrganizationStatus() (vista hermana, org-wide, solo hoy):
+    // esta además incluye las solicitudes para mañana. `date` opcional en formato "yyyy-MM-dd";
+    // si se omite, el backend usa UtcNow.Date del servidor ("mañana" es date+1, resuelto ahí).
+    getMyWalkwayStatus(date?: string): Observable<DetailResult<MyWalkwayIrrigationStatus>> {
+        const params = date ? new HttpParams().set('Date', date) : undefined;
+        return toDetailResult(this.http.get<ApiResponse<MyWalkwayIrrigationStatus>>(`${this.apiUrl}/my-walkway-status`, { params }));
     }
 
     // "Solicitar mi turno". Sin validación de día/temporada en el backend -- lo comprobamos en el

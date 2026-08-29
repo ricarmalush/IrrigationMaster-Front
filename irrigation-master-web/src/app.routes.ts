@@ -54,6 +54,10 @@ export const appRoutes: Routes = [
                 path: 'irrigation-status',
                 loadComponent: () => import('./app/features/level4-operational/irrigation-turns/pages/irrigation-status/irrigation-status.component').then((c) => c.IrrigationStatusComponent)
             },
+            {
+                path: 'my-irrigation',
+                loadComponent: () => import('./app/features/level4-operational/irrigation-turns/pages/my-irrigation/my-irrigation.component').then((c) => c.MyIrrigationComponent)
+            },
             // { path: 'sensors', loadComponent: () => import('./app/features/level4-operational/sensors/pages/sensors/sensors.component').then(c => c.SensorsComponent) },
 
             // NIVEL 5: EQUIPMENT
