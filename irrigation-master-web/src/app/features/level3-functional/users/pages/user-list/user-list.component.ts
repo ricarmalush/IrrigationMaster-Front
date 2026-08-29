@@ -27,6 +27,23 @@ interface OrganizationFilterOption {
 
 const ALL_ORGANIZATIONS_OPTION: OrganizationFilterOption = { label: 'Todas las organizaciones', value: null };
 
+type UserStatus = 'active' | 'deactivated' | 'pending';
+
+// "Pendiente" (nunca aprobado) y "Desactivado" (suspendido deliberadamente por un admin) comparten
+// isActive:false -- antes mostraban la misma etiqueta "Pendiente", la misma ambigüedad ya
+// corregida en la App. Solo deactivatedAt distingue ambos casos.
+const STATUS_LABELS: Record<UserStatus, string> = {
+    active: 'Activo',
+    deactivated: 'Desactivado',
+    pending: 'Pendiente'
+};
+
+const STATUS_SEVERITIES: Record<UserStatus, 'success' | 'warn' | 'secondary'> = {
+    active: 'success',
+    deactivated: 'secondary',
+    pending: 'warn'
+};
+
 @Component({
     selector: 'app-user-list',
     standalone: true,
@@ -102,6 +119,21 @@ export class UserListComponent implements OnInit {
         });
     }
 
+    status(user: AppUser): UserStatus {
+        if (user.isActive) {
+            return 'active';
+        }
+        return user.deactivatedAt ? 'deactivated' : 'pending';
+    }
+
+    statusLabel(user: AppUser): string {
+        return STATUS_LABELS[this.status(user)];
+    }
+
+    statusSeverity(user: AppUser): 'success' | 'warn' | 'secondary' {
+        return STATUS_SEVERITIES[this.status(user)];
+    }
+
     activate(user: AppUser): void {
         this.userService.activate(user.id).subscribe((result) => {
             this.messageService.add({
@@ -128,7 +160,10 @@ export class UserListComponent implements OnInit {
     }
 
     private deactivate(user: AppUser): void {
-        this.userService.delete(user.id).subscribe((result) => {
+        // Suspensión deliberada (PUT /Users/Deactivate/{id}), no borrado lógico -- distinto de
+        // userService.delete(), que sigue existiendo pero ya no lo dispara ningún botón de esta
+        // pantalla.
+        this.userService.deactivate(user.id).subscribe((result) => {
             this.messageService.add({
                 severity: result.isSuccess ? 'success' : 'error',
                 summary: result.isSuccess ? 'Usuario desactivado' : 'No se pudo desactivar',

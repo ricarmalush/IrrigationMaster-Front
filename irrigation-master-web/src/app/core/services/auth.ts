@@ -23,6 +23,11 @@ export interface LoginResult {
   // credenciales/cuenta inactiva -- el componente de login lo usa para diferenciar visualmente
   // "contacta con soporte" de un simple error de autenticación.
   isLicenceError?: boolean;
+  // true solo cuando el backend respondió 403 (GlobalMessages.AccountDeactivated): la cuenta fue
+  // suspendida deliberadamente por un administrador. Distinto del 401 genérico (credenciales
+  // inválidas o pendiente de aprobación, que siguen devolviendo 401 sin cambios) y del 402 de
+  // licencia -- el componente de login lo usa para mostrar su propio mensaje.
+  isAccountDeactivatedError?: boolean;
 }
 
 @Injectable({
@@ -54,7 +59,7 @@ export class AuthService {
       catchError((error: HttpErrorResponse) => {
         const backendMessage = error.error?.message as string | undefined;
         const message = backendMessage || (error.status === 0 ? NETWORK_ERROR_MESSAGE : UNEXPECTED_ERROR_MESSAGE);
-        return of<LoginResult>({ isSuccess: false, message, isLicenceError: error.status === 402 });
+        return of<LoginResult>({ isSuccess: false, message, isLicenceError: error.status === 402, isAccountDeactivatedError: error.status === 403 });
       })
     );
   }

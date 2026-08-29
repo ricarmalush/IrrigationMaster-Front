@@ -11,6 +11,11 @@ export interface AppUser {
     walkwayId?: string | null;
     walkwayCode?: string | null;
     organizationName: string;
+    // Distinto de "pendiente de aprobación" (nunca se activó): DeactivatedAt no-null significa que
+    // un admin lo suspendió deliberadamente (reversible con Activate). Ambos casos comparten
+    // isActive:false, así que solo DeactivatedAt permite diferenciarlos en la UI.
+    deactivatedAt?: string | null;
+    deactivatedBy?: string | null;
 }
 
 export interface CreateUserRequest {

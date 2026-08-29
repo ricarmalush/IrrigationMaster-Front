@@ -42,13 +42,16 @@ export class Login {
                 return;
             }
 
-            // 402 (GlobalMessages.NoActiveLicence): ni la organización ni el propio usuario tienen
-            // licencia vigente -- no es un fallo de credenciales, así que se distingue con un icono
-            // y título propios en vez del genérico "Error de Autenticación".
+            // 402 (sin licencia) y 403 (cuenta desactivada por un admin) no son fallos de
+            // credenciales -- cada uno se distingue con su propio título/icono en vez del genérico
+            // "Error de Autenticación".
+            const title = result.isLicenceError ? 'Licencia no disponible' : result.isAccountDeactivatedError ? 'Cuenta desactivada' : 'Error de Autenticación';
+            const icon = result.isLicenceError || result.isAccountDeactivatedError ? 'warning' : 'error';
+
             Swal.fire({
-                title: result.isLicenceError ? 'Licencia no disponible' : 'Error de Autenticación',
+                title,
                 text: result.message,
-                icon: result.isLicenceError ? 'warning' : 'error',
+                icon,
                 confirmButtonColor: '#00bfa5'
             });
         });

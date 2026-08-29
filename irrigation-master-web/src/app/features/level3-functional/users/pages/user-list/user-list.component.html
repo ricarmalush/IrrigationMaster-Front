@@ -68,7 +68,7 @@
                 <td>{{ user.role }}</td>
                 <td>{{ user.walkwayCode || '—' }}</td>
                 <td>
-                    <p-tag [severity]="user.isActive ? 'success' : 'warn'" [value]="user.isActive ? 'Activo' : 'Pendiente'"></p-tag>
+                    <p-tag [severity]="statusSeverity(user)" [value]="statusLabel(user)"></p-tag>
                 </td>
                 <td>
                     <button pButton type="button" icon="pi pi-pencil" class="p-button-text p-button-rounded" [routerLink]="['/users', user.id]"></button>

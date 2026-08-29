@@ -186,6 +186,30 @@ describe('UserService', () => {
         });
     });
 
+    describe('deactivate()', () => {
+        it('PUTs to Deactivate/{id}', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.deactivate('user-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/Deactivate/user-1`);
+            expect(req.request.method).toBe('PUT');
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
+        });
+
+        it('on a 400 (e.g. insufficient permission), resolves with the backend message', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.deactivate('user-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/Deactivate/user-1`).flush({ isSuccess: false, message: 'No tienes permiso para desactivar usuarios.' }, { status: 400, statusText: 'Bad Request' });
+
+            expect(result).toEqual({ isSuccess: false, message: 'No tienes permiso para desactivar usuarios.' });
+        });
+    });
+
     describe('changeRole()', () => {
         it('PUTs to ChangeRole/{id} with the roleId', () => {
             let result: OperationResult<boolean> | undefined;

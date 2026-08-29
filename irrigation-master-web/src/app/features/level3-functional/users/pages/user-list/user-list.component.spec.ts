@@ -26,7 +26,9 @@ const activeUser: AppUser = {
     organizationName: 'Comunidad'
 };
 
-const pendingUser: AppUser = { ...activeUser, id: 'user-2', isActive: false, fullName: 'Luis Pérez' };
+const pendingUser: AppUser = { ...activeUser, id: 'user-2', isActive: false, fullName: 'Luis Pérez', deactivatedAt: null };
+
+const deactivatedUser: AppUser = { ...activeUser, id: 'user-3', isActive: false, fullName: 'Marta Ruiz', deactivatedAt: '2026-01-15T10:00:00Z', deactivatedBy: 'admin-1' };
 
 const organization: Organization = {
     id: 'org-1',
@@ -49,7 +51,7 @@ describe('UserListComponent', () => {
     let confirmationService: jasmine.SpyObj<ConfirmationService>;
 
     function setup(role: string | null): void {
-        userService = jasmine.createSpyObj('UserService', ['list', 'delete', 'activate']);
+        userService = jasmine.createSpyObj('UserService', ['list', 'delete', 'activate', 'deactivate']);
         organizationService = jasmine.createSpyObj('OrganizationService', ['list']);
         organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: true, message: 'ok', items: [organization], totalCount: 1 }));
         currentSession = jasmine.createSpyObj('CurrentSessionService', ['getRole']);
@@ -199,16 +201,39 @@ describe('UserListComponent', () => {
     });
 
     describe('confirmDeactivate()', () => {
-        it('asks for confirmation, and on accept deactivates + reloads the list', () => {
+        // Distinto de userService.delete() (borrado lógico): el botón "Desactivar" ya existía en
+        // la fila pero estaba mal cableado -- ahora llama a PUT /Users/Deactivate/{id} (suspensión
+        // deliberada, reversible, conserva historial).
+        it('asks for confirmation, and on accept calls userService.deactivate() (not delete) + reloads the list', () => {
             setup('SUPERADMIN');
-            userService.delete.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
+            userService.deactivate.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
             userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
             confirmationService.confirm.and.callFake((c) => c.accept!());
 
             component.confirmDeactivate(activeUser);
 
-            expect(userService.delete).toHaveBeenCalledWith('user-1');
+            expect(userService.deactivate).toHaveBeenCalledWith('user-1');
+            expect(userService.delete).not.toHaveBeenCalled();
             expect(userService.list).toHaveBeenCalled();
+        });
+    });
+
+    describe('status() / statusLabel() / statusSeverity()', () => {
+        beforeEach(() => setup('SUPERADMIN'));
+
+        it('is "Activo" (success) when isActive is true', () => {
+            expect(component.statusLabel(activeUser)).toBe('Activo');
+            expect(component.statusSeverity(activeUser)).toBe('success');
+        });
+
+        it('is "Pendiente" (warn) when isActive is false and deactivatedAt is null (nunca aprobado)', () => {
+            expect(component.statusLabel(pendingUser)).toBe('Pendiente');
+            expect(component.statusSeverity(pendingUser)).toBe('warn');
+        });
+
+        it('is "Desactivado" (secondary) when isActive is false and deactivatedAt has a value (suspendido por un admin)', () => {
+            expect(component.statusLabel(deactivatedUser)).toBe('Desactivado');
+            expect(component.statusSeverity(deactivatedUser)).toBe('secondary');
         });
     });
 

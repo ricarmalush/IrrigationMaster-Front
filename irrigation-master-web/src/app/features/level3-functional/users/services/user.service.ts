@@ -45,6 +45,13 @@ export class UserService {
         return toOperationResult(this.http.put<ApiResponse<boolean>>(`${this.apiUrl}/Activate/${id}`, {}));
     }
 
+    // Distinto de delete() (borrado lógico, IsDeleted:true): suspende deliberadamente sin borrar,
+    // conserva el historial y es reversible con activate(). Requiere el permiso DEACTIVATE_USERS
+    // o rol SUPERADMIN.
+    deactivate(id: string): Observable<OperationResult<boolean>> {
+        return toOperationResult(this.http.put<ApiResponse<boolean>>(`${this.apiUrl}/Deactivate/${id}`, {}));
+    }
+
     changeRole(id: string, roleId: string): Observable<OperationResult<boolean>> {
         return toOperationResult(this.http.put<ApiResponse<boolean>>(`${this.apiUrl}/ChangeRole/${id}`, { roleId }));
     }

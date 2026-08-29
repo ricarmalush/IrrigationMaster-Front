@@ -89,4 +89,27 @@ describe('Login', () => {
         );
         expect(router.navigate).not.toHaveBeenCalled();
     });
+
+    it('on a 403 (isAccountDeactivatedError:true), shows a distinct "Cuenta desactivada" warning with the real backend message', () => {
+        component.email = 'vecino@irrigationmaster.com';
+        component.password = 'Vecino123!';
+        authService.login.and.returnValue(
+            of<LoginResult>({
+                isSuccess: false,
+                message: 'Tu cuenta ha sido desactivada por un administrador. Contacta con tu organización.',
+                isAccountDeactivatedError: true
+            })
+        );
+
+        component.iniciarSesion();
+
+        expect(Swal.fire).toHaveBeenCalledWith(
+            jasmine.objectContaining({
+                title: 'Cuenta desactivada',
+                text: 'Tu cuenta ha sido desactivada por un administrador. Contacta con tu organización.',
+                icon: 'warning'
+            })
+        );
+        expect(router.navigate).not.toHaveBeenCalled();
+    });
 });
