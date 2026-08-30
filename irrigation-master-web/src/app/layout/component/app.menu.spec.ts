@@ -170,5 +170,32 @@ describe('AppMenu', () => {
             currentSession.establish(buildToken('VICEPRESIDENTE'));
             expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
         });
+
+        // Hallazgo detectado en vivo: un Vecino veía y podía navegar a "Organizaciones"/"Sectores"/
+        // "Andadores"/"Usuarios" sin ningún gating, a diferencia del resto del menú.
+        it('omits "Estructura" and "Usuarios" entirely for VECINO or no role', () => {
+            expect(component.model().some((g) => g.label === 'Estructura')).toBe(false);
+            expect(component.model().some((g) => g.label === 'Usuarios')).toBe(false);
+
+            currentSession.establish(buildToken('VECINO'));
+            expect(component.model().some((g) => g.label === 'Estructura')).toBe(false);
+            expect(component.model().some((g) => g.label === 'Usuarios')).toBe(false);
+        });
+
+        it('shows "Sectores"/"Andadores"/"Usuarios" for SUPERADMIN/PRESIDENTE/VICEPRESIDENTE, but "Organizaciones" only for SUPERADMIN', () => {
+            for (const role of ['PRESIDENTE', 'VICEPRESIDENTE']) {
+                currentSession.establish(buildToken(role));
+                expect(itemVisible(component, 'Estructura', 'Sectores')).toBe(true);
+                expect(itemVisible(component, 'Estructura', 'Andadores')).toBe(true);
+                expect(itemVisible(component, 'Estructura', 'Organizaciones')).toBe(false);
+                expect(itemVisible(component, 'Usuarios', 'Usuarios')).toBe(true);
+            }
+
+            currentSession.establish(buildToken('SUPERADMIN'));
+            expect(itemVisible(component, 'Estructura', 'Sectores')).toBe(true);
+            expect(itemVisible(component, 'Estructura', 'Andadores')).toBe(true);
+            expect(itemVisible(component, 'Estructura', 'Organizaciones')).toBe(true);
+            expect(itemVisible(component, 'Usuarios', 'Usuarios')).toBe(true);
+        });
     });
 });

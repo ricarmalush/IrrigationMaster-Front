@@ -14,10 +14,12 @@
                     <span class="text-sm font-semibold">Nombre</span>
                     <span>{{ organizationName() }}</span>
                 </div>
-                <div class="flex flex-col gap-2">
-                    <span class="text-sm font-semibold">Código de invitación</span>
-                    <span>{{ invitationCode() }}</span>
-                </div>
+                @if (canRegenerateCode) {
+                    <div class="flex flex-col gap-2">
+                        <span class="text-sm font-semibold">Código de invitación</span>
+                        <span>{{ invitationCode() }}</span>
+                    </div>
+                }
             </div>
 
             @if (canRegenerateCode) {

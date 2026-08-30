@@ -8,6 +8,11 @@ import { CurrentSessionService } from '@/app/core/services/current-session';
 // Mismos roles que ShowApproveTurns/ShowCommunityBroadcast en AdminMenuPage.xaml.cs de la App.
 const ADMIN_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
 const BROADCAST_ROLES = ADMIN_ROLES;
+// Hallazgo detectado en vivo: un Vecino podía ver y navegar a "Sectores"/"Andadores"/"Usuarios"
+// sin ningún gating (a diferencia del resto del menú). Mismos roles que los nuevos permisos
+// backend VIEW_ORG_USERS/MANAGE_ORG_STRUCTURE (SUPERADMIN exento, sembrados en Presidente/
+// Vicepresidente). "Organizaciones" es más estricto: exclusivo de SUPERADMIN, ver isSuperAdmin().
+const STRUCTURE_MANAGEMENT_ROLES = ADMIN_ROLES;
 // Mismos roles que ShowIrrigationPrograms en AdminMenuPage.xaml.cs (ligado al permiso de backend
 // MANAGE_IRRIGATION_PROGRAMS).
 const IRRIGATION_PROGRAM_ROLES = ['SUPERADMIN', 'COORDINADOR_RIEGO'];
@@ -45,18 +50,28 @@ export class AppMenu {
             label: 'Home',
             items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
         },
-        {
-            label: 'Estructura',
-            items: [
-                { label: 'Organizaciones', icon: 'pi pi-fw pi-building', routerLink: ['/organizations'] },
-                { label: 'Sectores', icon: 'pi pi-fw pi-sitemap', routerLink: ['/hydraulic-sectors'] },
-                { label: 'Andadores', icon: 'pi pi-fw pi-directions', routerLink: ['/walkways'] }
-            ]
-        },
-        {
-            label: 'Usuarios',
-            items: [{ label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/users'] }]
-        },
+        // "Organizaciones" (listado/crear/editar de TODAS las organizaciones) es exclusivo de
+        // SUPERADMIN -- decisión explícita del usuario, distinta de Sectores/Andadores. El grupo
+        // completo se omite si ninguna de las dos condiciones aplica (p. ej. Vecino).
+        ...(this.isSuperAdmin() || this.canManageStructure()
+            ? [
+                  {
+                      label: 'Estructura',
+                      items: [
+                          ...(this.isSuperAdmin() ? [{ label: 'Organizaciones', icon: 'pi pi-fw pi-building', routerLink: ['/organizations'] }] : []),
+                          ...(this.canManageStructure()
+                              ? [
+                                    { label: 'Sectores', icon: 'pi pi-fw pi-sitemap', routerLink: ['/hydraulic-sectors'] },
+                                    { label: 'Andadores', icon: 'pi pi-fw pi-directions', routerLink: ['/walkways'] }
+                                ]
+                              : [])
+                      ]
+                  }
+              ]
+            : []),
+        // Hallazgo detectado en vivo: un Vecino veía y podía navegar al listado completo de
+        // usuarios de su organización. Mismo gating que el nuevo permiso backend VIEW_ORG_USERS.
+        ...(this.canManageStructure() ? [{ label: 'Usuarios', items: [{ label: 'Usuarios', icon: 'pi pi-fw pi-users', routerLink: ['/users'] }] }] : []),
         {
             label: 'Comunidad',
             items: [
@@ -122,6 +137,11 @@ export class AppMenu {
 
     private isSuperAdmin(): boolean {
         return this.currentSession.role() === 'SUPERADMIN';
+    }
+
+    // Mismo gating que los nuevos permisos backend VIEW_ORG_USERS/MANAGE_ORG_STRUCTURE.
+    private canManageStructure(): boolean {
+        return STRUCTURE_MANAGEMENT_ROLES.includes(this.currentSession.role() ?? '');
     }
 
     private canViewInvoices(): boolean {
