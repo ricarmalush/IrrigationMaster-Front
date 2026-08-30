@@ -57,6 +57,8 @@ export class UserDetailComponent implements OnInit {
     readonly roleActionControl = this.fb.nonNullable.control('', Validators.required);
     readonly walkwayActionControl = this.fb.control<string | null>(null);
     readonly passwordActionControl = this.fb.nonNullable.control('', Validators.required);
+    readonly confirmPasswordActionControl = this.fb.nonNullable.control('', Validators.required);
+    readonly passwordMismatch = signal(false);
     readonly actionMessage = signal<string | null>(null);
 
     ngOnInit(): void {
@@ -150,8 +152,19 @@ export class UserDetailComponent implements OnInit {
     }
 
     resetPassword(): void {
-        if (this.passwordActionControl.invalid) {
+        this.passwordMismatch.set(false);
+
+        if (this.passwordActionControl.invalid || this.confirmPasswordActionControl.invalid) {
             this.passwordActionControl.markAsTouched();
+            this.confirmPasswordActionControl.markAsTouched();
+            return;
+        }
+
+        // Validación local, sin red: mismo criterio que ResetPasswordAsync en
+        // UserManagementViewModel de la App -- se comprueba al pulsar "Restablecer", no
+        // mientras se escribe, y evita una petición innecesaria si no coinciden.
+        if (this.passwordActionControl.value !== this.confirmPasswordActionControl.value) {
+            this.passwordMismatch.set(true);
             return;
         }
 
@@ -159,6 +172,7 @@ export class UserDetailComponent implements OnInit {
             this.notifyAction(result, 'Contraseña restablecida', 'No se pudo restablecer la contraseña');
             if (result.isSuccess) {
                 this.passwordActionControl.reset('');
+                this.confirmPasswordActionControl.reset('');
             }
         });
     }

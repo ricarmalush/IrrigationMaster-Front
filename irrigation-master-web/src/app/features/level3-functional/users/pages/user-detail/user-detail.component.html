@@ -103,8 +103,20 @@
 
         <div class="flex flex-col md:flex-row md:items-end gap-3">
             <div class="flex flex-col gap-2 flex-1">
-                <label for="newPassword" class="text-sm font-semibold">Restablecer contraseña</label>
+                <label for="newPassword" class="text-sm font-semibold">Nueva contraseña</label>
                 <p-password id="newPassword" [formControl]="passwordActionControl" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
+                @if (passwordActionControl.invalid && passwordActionControl.touched) {
+                    <small class="text-red-500 text-sm">La contraseña es obligatoria.</small>
+                }
+            </div>
+            <div class="flex flex-col gap-2 flex-1">
+                <label for="confirmNewPassword" class="text-sm font-semibold">Confirmar nueva contraseña</label>
+                <p-password id="confirmNewPassword" [formControl]="confirmPasswordActionControl" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full"></p-password>
+                @if (confirmPasswordActionControl.invalid && confirmPasswordActionControl.touched) {
+                    <small class="text-red-500 text-sm">Confirma la nueva contraseña.</small>
+                } @else if (passwordMismatch()) {
+                    <small class="text-red-500 text-sm">La nueva contraseña y su confirmación no coinciden.</small>
+                }
             </div>
             <button pButton type="button" label="Restablecer" (click)="resetPassword()"></button>
         </div>

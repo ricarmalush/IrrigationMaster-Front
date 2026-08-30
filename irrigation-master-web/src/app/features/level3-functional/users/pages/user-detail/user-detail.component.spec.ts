@@ -236,21 +236,37 @@ describe('UserDetailComponent', () => {
             expect(userService.assignWalkway).toHaveBeenCalledWith('user-1', null);
         });
 
-        it('resetPassword(): does not call the service with an empty password', () => {
+        it('resetPassword(): does not call the service with empty fields', () => {
             component.resetPassword();
 
             expect(userService.resetPassword).not.toHaveBeenCalled();
             expect(component.passwordActionControl.touched).toBe(true);
+            expect(component.confirmPasswordActionControl.touched).toBe(true);
         });
 
-        it('resetPassword(): resets the password and clears the field on success', () => {
+        // Espejo de ResetPasswordAsync en UserManagementViewModel de la App: la comprobación
+        // de coincidencia se dispara al pulsar "Restablecer", no mientras se escribe, y evita
+        // la petición al backend si no coinciden.
+        it('resetPassword(): does not call the service and flags the mismatch when the passwords differ', () => {
+            component.passwordActionControl.setValue('NewSecret123!');
+            component.confirmPasswordActionControl.setValue('Otra123!');
+
+            component.resetPassword();
+
+            expect(userService.resetPassword).not.toHaveBeenCalled();
+            expect(component.passwordMismatch()).toBe(true);
+        });
+
+        it('resetPassword(): resets both fields and clears the mismatch flag on success', () => {
             userService.resetPassword.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
             component.passwordActionControl.setValue('NewSecret123!');
+            component.confirmPasswordActionControl.setValue('NewSecret123!');
 
             component.resetPassword();
 
             expect(userService.resetPassword).toHaveBeenCalledWith('user-1', 'NewSecret123!');
             expect(component.passwordActionControl.value).toBe('');
+            expect(component.confirmPasswordActionControl.value).toBe('');
         });
     });
 });
