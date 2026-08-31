@@ -5,9 +5,14 @@ import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
 import { CurrentSessionService } from '@/app/core/services/current-session';
 
-// Mismos roles que ShowApproveTurns/ShowCommunityBroadcast en AdminMenuPage.xaml.cs de la App.
+// Mismos roles que ShowApproveTurns en AdminMenuPage.xaml.cs de la App.
 const ADMIN_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
-const BROADCAST_ROLES = ADMIN_ROLES;
+// Espejo de ShowCommunityBroadcast en AdminMenuPage.xaml.cs: a diferencia de ShowApproveTurns/
+// ShowUserManagement, este SÍ incluye a Coordinador de Riego (backend: SendNotificationCommand
+// solo exige el permiso SEND_NOTIFICATIONS, ya sembrado en COORDINADOR_RIEGO). Antes reutilizaba
+// ADMIN_ROLES por descuido, dejando a Coordinador de Riego sin la entrada de menú aunque el
+// backend ya lo aceptara.
+const BROADCAST_ROLES = [...ADMIN_ROLES, 'COORDINADOR_RIEGO'];
 // Hallazgo detectado en vivo: un Vecino podía ver y navegar a "Sectores"/"Andadores"/"Usuarios"
 // sin ningún gating (a diferencia del resto del menú). Mismos roles que los nuevos permisos
 // backend VIEW_ORG_USERS/MANAGE_ORG_STRUCTURE (SUPERADMIN exento, sembrados en Presidente/

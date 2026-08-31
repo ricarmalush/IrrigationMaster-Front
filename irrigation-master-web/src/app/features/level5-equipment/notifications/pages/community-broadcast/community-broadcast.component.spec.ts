@@ -75,6 +75,14 @@ describe('CommunityBroadcastComponent', () => {
         expect(component.canEdit).toBe(true);
     });
 
+    // A diferencia de "Aprobar Turnos"/"Usuarios"/"Sectores", "Avisar a mi comunidad" SÍ incluye
+    // a Coordinador de Riego -- espejo de ShowCommunityBroadcast en AdminMenuPage.xaml.cs de la
+    // App; el backend solo exige el permiso SEND_NOTIFICATIONS, ya sembrado en ese rol.
+    it('exposes canEdit as true for COORDINADOR_RIEGO', () => {
+        setup('COORDINADOR_RIEGO');
+        expect(component.canEdit).toBe(true);
+    });
+
     it('exposes canEdit as false and disables the form for any other role', () => {
         setup('VECINO');
 

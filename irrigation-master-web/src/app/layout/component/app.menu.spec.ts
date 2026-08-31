@@ -78,6 +78,15 @@ describe('AppMenu', () => {
         expect(broadcastItemVisible(component)).toBe(true);
     });
 
+    // A diferencia de "Aprobar Turnos"/"Usuarios"/"Sectores" (ADMIN_ROLES/STRUCTURE_MANAGEMENT_ROLES),
+    // "Avisar a mi comunidad" SÍ incluye a Coordinador de Riego -- espejo de ShowCommunityBroadcast
+    // en AdminMenuPage.xaml.cs de la App; el backend solo exige el permiso SEND_NOTIFICATIONS, ya
+    // sembrado en ese rol.
+    it('shows "Avisar a mi comunidad" for COORDINADOR_RIEGO', () => {
+        currentSession.establish(buildToken('COORDINADOR_RIEGO'));
+        expect(broadcastItemVisible(component)).toBe(true);
+    });
+
     // Regresión del bug reportado: el rol llega DESPUÉS de que el menú ya se haya construido
     // (AppMenu vive en el AppLayout persistente, no se reconstruye al navegar). Antes del fix,
     // el ítem se quedaba oculto para siempre aunque el rol correcto llegara justo después.

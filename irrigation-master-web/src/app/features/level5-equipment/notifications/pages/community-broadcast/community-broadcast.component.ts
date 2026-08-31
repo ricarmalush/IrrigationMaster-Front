@@ -9,7 +9,10 @@ import { CurrentSessionService } from '../../../../../core/services/current-sess
 import { UserService } from '../../../../level3-functional/users/services/user.service';
 import { BroadcastAudience, NotificationService } from '../../services/notification.service';
 
-const BROADCAST_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
+// Espejo de ShowCommunityBroadcast en AdminMenuPage.xaml.cs de la App: incluye a Coordinador de
+// Riego (backend: SendNotificationCommand solo exige el permiso SEND_NOTIFICATIONS, ya sembrado
+// en ese rol) -- mismo conjunto que BROADCAST_ROLES en app.menu.ts, que gatea la entrada de menú.
+const BROADCAST_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE', 'COORDINADOR_RIEGO'];
 
 interface AudienceOption {
     label: string;
@@ -19,10 +22,10 @@ interface AudienceOption {
 const WALKWAY_OPTION: AudienceOption = { label: 'Mi andador', value: 'Walkway' };
 const ORGANIZATION_OPTION: AudienceOption = { label: 'Toda mi organización', value: 'Organization' };
 
-// Gating a SUPERADMIN/Presidente/Vicepresidente, igual que en la App (AdminMenuPage). Espejo de
-// CommunityBroadcastViewModel.LoadAsync: "Mi andador" solo aparece si el emisor tiene un andador
-// asignado, "Toda mi organización" siempre está -- y la selección por defecto es la primera
-// opción de la lista (igual que AudienceOptions.FirstOrDefault() en la App).
+// Gating a SUPERADMIN/Presidente/Vicepresidente/Coordinador de Riego, igual que en la App
+// (AdminMenuPage). Espejo de CommunityBroadcastViewModel.LoadAsync: "Mi andador" solo aparece si
+// el emisor tiene un andador asignado, "Toda mi organización" siempre está -- y la selección por
+// defecto es la primera opción de la lista (igual que AudienceOptions.FirstOrDefault() en la App).
 @Component({
     selector: 'app-community-broadcast',
     standalone: true,
