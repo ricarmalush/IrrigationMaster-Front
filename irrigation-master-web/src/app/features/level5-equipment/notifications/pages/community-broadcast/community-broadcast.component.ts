@@ -88,7 +88,7 @@ export class CommunityBroadcastComponent implements OnInit {
             this.sending.set(false);
             if (result.isSuccess) {
                 this.messageService.add({ severity: 'success', summary: 'Aviso enviado', detail: this.recipientDetail(result.data) });
-                this.form.patchValue({ message: '' });
+                this.resetMessageField();
             } else {
                 this.errorMessage.set(result.message);
             }
@@ -96,8 +96,18 @@ export class CommunityBroadcastComponent implements OnInit {
     }
 
     cancel(): void {
-        this.form.patchValue({ message: '' });
+        this.resetMessageField();
         this.errorMessage.set(null);
+    }
+
+    // patchValue() solo cambia el VALOR: el control "message" seguía "touched" (heredado del blur
+    // al pulsar el botón), y con el valor ahora vacío el validador required lo marcaba inválido de
+    // inmediato -- el usuario veía "El mensaje es obligatorio" justo después de un envío exitoso,
+    // sin haber tocado nada. reset() sí limpia touched/dirty además del valor, igual que un
+    // formulario recién cargado. Preservamos el destinatario elegido (reset() sin argumentos lo
+    // devolvería a 'Organization', el valor inicial del FormGroup).
+    private resetMessageField(): void {
+        this.form.reset({ audience: this.form.controls.audience.value, message: '' });
     }
 
     private recipientDetail(count: number | undefined): string {

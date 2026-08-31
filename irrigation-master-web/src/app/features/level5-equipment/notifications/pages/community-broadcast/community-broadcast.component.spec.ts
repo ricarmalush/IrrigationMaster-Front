@@ -165,6 +165,24 @@ describe('CommunityBroadcastComponent', () => {
         expect(component.form.value.message).toBeFalsy();
     });
 
+    // Regresión del bug reportado: patchValue() solo cambiaba el valor, dejando el control
+    // "touched" (heredado del blur al pulsar "Enviar aviso"). El campo vacío sigue siendo
+    // "invalid" por el required (eso es correcto, igual que un formulario recién cargado), pero
+    // al quedar "untouched" el error deja de mostrarse -- la plantilla solo lo pinta cuando
+    // invalid Y touched son ambos true.
+    it('after a successful send, the message control is untouched (no false "required" error shown)', () => {
+        setup('PRESIDENTE');
+        notificationService.send.and.returnValue(of<OperationResult<number>>({ isSuccess: true, message: 'ok', data: 15 }));
+        component.form.controls.message.setValue('Corte de agua mañana');
+        component.form.controls.message.markAsTouched(); // simula el blur real al pulsar el botón
+
+        component.send();
+
+        expect(component.form.controls.message.touched).toBe(false);
+        expect(component.form.controls.message.dirty).toBe(false);
+        expect(component.form.controls.message.invalid).toBe(true); // vacío + required: correcto, igual que al cargar
+    });
+
     it('on a valid form with audience Walkway, sends the message with the target walkway id', () => {
         setup('PRESIDENTE');
         userService.getById.and.returnValue(of<DetailResult<AppUser>>({ isSuccess: true, message: 'ok', data: { ...user, walkwayId: 'walkway-1' } }));
@@ -210,5 +228,18 @@ describe('CommunityBroadcastComponent', () => {
         expect(component.form.value.message).toBeFalsy();
         expect(component.errorMessage()).toBeNull();
         expect(component.form.controls.audience.value).toBe('Walkway');
+    });
+
+    // Mismo bug/fix que en send(): cancel() también usaba patchValue(), con idéntico riesgo de
+    // dejar el campo "touched" con el valor ya vacío.
+    it('cancel() also leaves the message control untouched', () => {
+        setup('PRESIDENTE');
+        component.form.controls.message.setValue('algo');
+        component.form.controls.message.markAsTouched();
+
+        component.cancel();
+
+        expect(component.form.controls.message.touched).toBe(false);
+        expect(component.form.controls.message.dirty).toBe(false);
     });
 });
