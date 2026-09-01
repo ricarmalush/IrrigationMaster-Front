@@ -119,22 +119,37 @@ export class InvoiceListComponent implements OnInit {
     private lastRows = 10;
 
     ngOnInit(): void {
+        // Las cuatro llamadas de aquí abajo alimentan mapas id->nombre para la tabla, no la lista
+        // de facturas en sí -- antes, un permiso denegado en cualquiera de ellas se traducía en
+        // mostrar el ID crudo en vez del nombre, en silencio (mismo bug que VIEW_HYDRAULIC_SECTORS).
         this.organizationService.list(1, 100).subscribe((result) => {
             this.organizationNames.set(Object.fromEntries(result.items.map((o) => [o.id, o.name])));
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
         // Sin OrganizationId: para SUPERADMIN devuelve usuarios de todas las organizaciones, igual
         // que en license-list (las facturas individuales pueden ser de cualquier organización).
         this.userService.list(1, 100).subscribe((result) => {
             this.userNames.set(Object.fromEntries(result.items.map((u) => [u.id, u.fullName])));
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
 
         // AssignedLicensesController es exclusivo SUPERADMIN -- solo intentamos resolver el nombre
         // de la licencia de origen cuando tenemos acceso real a ese catálogo.
         if (this.isSuperAdmin) {
             this.licenceTypeService.list(1, 100).subscribe((typeResult) => {
+                if (!typeResult.isSuccess) {
+                    this.errorMessage.set(typeResult.message);
+                }
                 const typeNames = Object.fromEntries(typeResult.items.map((t) => [t.id, t.name]));
                 this.assignedLicenseService.list(1, 100).subscribe((licenseResult) => {
                     this.licenceOriginNames.set(Object.fromEntries(licenseResult.items.map((l) => [l.id, typeNames[l.licenceTypeId] ?? l.licenceTypeId])));
+                    if (!licenseResult.isSuccess) {
+                        this.errorMessage.set(licenseResult.message);
+                    }
                 });
             });
         }

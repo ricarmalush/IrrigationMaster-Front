@@ -184,6 +184,12 @@ export class ProgramFormComponent implements OnInit {
         this.hydraulicSectorService.list(1, 100).subscribe((result) => {
             this.sectorsLoading.set(false);
             this.sectors.set(result.items);
+            if (!result.isSuccess) {
+                // El bug real que motivó VIEW_HYDRAULIC_SECTORS: un permiso denegado aquí dejaba
+                // el desplegable "Selecciona un sector" vacío en silencio ("No results found"),
+                // indistinguible de "esta organización no tiene sectores".
+                this.errorMessage.set(result.message);
+            }
         });
     }
 

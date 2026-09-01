@@ -150,6 +150,36 @@ describe('LicenseListComponent', () => {
 
             expect(component.scopeLabel(license({ userId: 'user-1' }))).toBe('Individual: Ricardo Ruiz');
         });
+
+        // Regresión: mismo bug que motivó VIEW_HYDRAULIC_SECTORS -- un permiso denegado en
+        // cualquiera de estos catálogos se traducía en mostrar el ID crudo en vez del nombre, en
+        // silencio.
+        it('surfaces the error message when the organizations catalog fails to load', () => {
+            setup('SUPERADMIN');
+            organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver organizaciones.');
+        });
+
+        it('surfaces the error message when the licence types catalog fails to load', () => {
+            setup('SUPERADMIN');
+            licenceTypeService.list.and.returnValue(of<ListResult<LicenceType>>({ isSuccess: false, message: 'No tienes permiso para ver tipos de licencia.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver tipos de licencia.');
+        });
+
+        it('surfaces the error message when the users catalog fails to load', () => {
+            setup('SUPERADMIN');
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: false, message: 'No tienes permiso para ver usuarios.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver usuarios.');
+        });
     });
 
     describe('scopeLabel()', () => {

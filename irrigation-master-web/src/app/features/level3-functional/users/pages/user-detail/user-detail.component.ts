@@ -185,16 +185,34 @@ export class UserDetailComponent implements OnInit {
         });
     }
 
+    // Las tres llamadas de abajo alimentan desplegables (Organización/Rol/Andador actual), no la
+    // entidad principal de la pantalla -- antes, si alguna fallaba (p. ej. un permiso denegado), el
+    // desplegable correspondiente quedaba vacío en silencio, indistinguible de "no hay registros".
     private loadOrganizations(): void {
-        this.organizationService.list(1, 100).subscribe((result) => this.organizations.set(result.items));
+        this.organizationService.list(1, 100).subscribe((result) => {
+            this.organizations.set(result.items);
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
+        });
     }
 
     private loadRoles(): void {
-        this.roleService.list(1, 100).subscribe((result) => this.roles.set(result.items));
+        this.roleService.list(1, 100).subscribe((result) => {
+            this.roles.set(result.items);
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
+        });
     }
 
     private loadWalkways(organizationId: string): void {
-        this.walkwayService.list(1, 100, organizationId).subscribe((result) => this.walkways.set(result.items));
+        this.walkwayService.list(1, 100, organizationId).subscribe((result) => {
+            this.walkways.set(result.items);
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
+        });
     }
 
     private loadUser(id: string): void {

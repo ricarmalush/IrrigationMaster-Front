@@ -133,6 +133,9 @@ export class WalkwayFormComponent implements OnInit {
         this.organizationService.list(1, 100).subscribe((result) => {
             this.organizationsLoading.set(false);
             this.organizations.set(result.items);
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
     }
 
@@ -141,6 +144,9 @@ export class WalkwayFormComponent implements OnInit {
         this.hydraulicSectorService.list(1, 100, organizationId).subscribe((result) => {
             this.sectorsLoading.set(false);
             this.sectors.set(result.items);
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
     }
 

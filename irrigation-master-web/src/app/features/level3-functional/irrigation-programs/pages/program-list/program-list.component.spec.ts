@@ -88,6 +88,17 @@ describe('ProgramListComponent', () => {
 
             expect(component.sectorName('missing-sector')).toBe('missing-sector');
         });
+
+        // Regresión: mismo bug que motivó VIEW_HYDRAULIC_SECTORS -- un permiso denegado aquí
+        // dejaba la tabla mostrando el ID crudo del sector en vez del nombre, en silencio.
+        it('surfaces the error message when the sector catalog fails to load', () => {
+            setup('SUPERADMIN');
+            hydraulicSectorService.list.and.returnValue(of<ListResult<HydraulicSector>>({ isSuccess: false, message: 'No tienes permiso para ver sectores.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver sectores.');
+        });
     });
 
     describe('onLazyLoad()', () => {

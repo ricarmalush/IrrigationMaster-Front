@@ -91,6 +91,18 @@ describe('ProgramFormComponent', () => {
         expect(component.sectors()).toEqual(sectors);
     });
 
+    // Regresión del bug real (Gema, Coordinadora de Riego de AVES): "Selecciona un sector" mostraba
+    // "No results found" en silencio cuando el permiso fallaba, sin ningún mensaje de error visible.
+    it('surfaces the error message when the sectors catalog fails to load, instead of a silent empty dropdown', () => {
+        setup(null);
+        component.ngOnInit();
+
+        sectorsSubject.next({ isSuccess: false, message: 'No tienes permiso para ver sectores.', items: [], totalCount: 0 });
+
+        expect(component.sectors()).toEqual([]);
+        expect(component.errorMessage()).toBe('No tienes permiso para ver sectores.');
+    });
+
     describe('días de riego', () => {
         beforeEach(() => {
             setup(null);

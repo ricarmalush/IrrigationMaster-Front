@@ -90,6 +90,38 @@ describe('UserDetailComponent', () => {
         expect(component.roles()).toEqual(roles);
     });
 
+    // Regresión: un permiso denegado en cualquiera de estos tres catálogos dejaba el desplegable
+    // correspondiente vacío en silencio, indistinguible de "no hay registros".
+    describe('errores de permiso en los catálogos de desplegables', () => {
+        it('surfaces the error message when the organizations catalog fails to load', () => {
+            setup(null);
+            organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver organizaciones.');
+        });
+
+        it('surfaces the error message when the roles catalog fails to load', () => {
+            setup(null);
+            roleService.list.and.returnValue(of<ListResult<Role>>({ isSuccess: false, message: 'No tienes permiso para ver roles.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver roles.');
+        });
+
+        it('surfaces the error message when the walkways catalog fails to load (edit mode)', () => {
+            setup('user-1');
+            userService.getById.and.returnValue(of<DetailResult<AppUser>>({ isSuccess: true, message: 'ok', data: user }));
+            walkwayService.list.and.returnValue(of<ListResult<Walkway>>({ isSuccess: false, message: 'No tienes permiso para ver andadores.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver andadores.');
+        });
+    });
+
     describe('create mode', () => {
         beforeEach(() => {
             setup(null);

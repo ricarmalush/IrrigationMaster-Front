@@ -110,6 +110,17 @@ describe('UserListComponent', () => {
             expect(organizationService.list).not.toHaveBeenCalled();
         });
 
+        // Regresión: un permiso denegado en esta llamada dejaba el selector de organización vacío
+        // en silencio, indistinguible de "no hay organizaciones" (mismo bug que VIEW_HYDRAULIC_SECTORS).
+        it('SUPERADMIN: surfaces the error message when the organization catalog fails to load', () => {
+            setup('SUPERADMIN');
+            organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver organizaciones.');
+        });
+
         it('organizationFilterOptions() antepone "Todas las organizaciones" (value:null) a las cargadas', () => {
             setup('SUPERADMIN');
 

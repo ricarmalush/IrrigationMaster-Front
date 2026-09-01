@@ -121,6 +121,16 @@ describe('SectorFormComponent', () => {
             expect(component.errorMessage()).toBe('El campo Name es obligatorio.');
             expect(router.navigate).not.toHaveBeenCalled();
         });
+
+        // Regresión: mismo bug que motivó VIEW_HYDRAULIC_SECTORS -- un permiso denegado aquí
+        // dejaba el selector de organización vacío en silencio.
+        it('surfaces the error message when the organizations catalog fails to load', () => {
+            organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver organizaciones.');
+        });
     });
 
     describe('create mode, como no-SUPERADMIN', () => {

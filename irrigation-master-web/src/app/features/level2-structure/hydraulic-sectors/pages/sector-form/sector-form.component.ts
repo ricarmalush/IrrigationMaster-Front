@@ -109,6 +109,9 @@ export class SectorFormComponent implements OnInit {
         this.organizationService.list(1, 100).subscribe((result) => {
             this.organizationsLoading.set(false);
             this.organizations.set(result.items);
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
     }
 

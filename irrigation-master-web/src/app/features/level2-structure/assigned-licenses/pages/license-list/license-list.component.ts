@@ -68,16 +68,28 @@ export class LicenseListComponent implements OnInit {
     private lastRows = 10;
 
     ngOnInit(): void {
+        // Las tres llamadas de aquí abajo alimentan mapas id->nombre para la tabla, no la lista de
+        // licencias en sí -- antes, un permiso denegado en cualquiera de ellas se traducía en
+        // mostrar el ID crudo en vez del nombre, en silencio (mismo bug que VIEW_HYDRAULIC_SECTORS).
         this.organizationService.list(1, 100).subscribe((result) => {
             this.organizationNames.set(Object.fromEntries(result.items.map((o) => [o.id, o.name])));
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
         this.licenceTypeService.list(1, 100).subscribe((result) => {
             this.licenceTypeNames.set(Object.fromEntries(result.items.map((t) => [t.id, t.name])));
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
         // Sin OrganizationId: para SUPERADMIN devuelve usuarios de todas las organizaciones, igual
         // que necesitamos aquí (las licencias individuales pueden ser de cualquier organización).
         this.userService.list(1, 100).subscribe((result) => {
             this.userNames.set(Object.fromEntries(result.items.map((u) => [u.id, u.fullName])));
+            if (!result.isSuccess) {
+                this.errorMessage.set(result.message);
+            }
         });
     }
 

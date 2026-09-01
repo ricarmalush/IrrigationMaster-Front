@@ -89,6 +89,26 @@ describe('WalkwayFormComponent', () => {
         expect(component.sectors()).toEqual(sectors);
     });
 
+    // Regresión: mismo bug que motivó VIEW_HYDRAULIC_SECTORS -- un permiso denegado en cualquiera
+    // de los dos catálogos dejaba el desplegable correspondiente vacío en silencio.
+    it('surfaces the error message when the sectors catalog fails to load (no-SUPERADMIN)', () => {
+        setup(null);
+        component.ngOnInit();
+
+        sectorsSubject.next({ isSuccess: false, message: 'No tienes permiso para ver sectores.', items: [], totalCount: 0 });
+
+        expect(component.errorMessage()).toBe('No tienes permiso para ver sectores.');
+    });
+
+    it('surfaces the error message when the organizations catalog fails to load (SUPERADMIN)', () => {
+        setup(null, 'SUPERADMIN');
+        organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
+
+        component.ngOnInit();
+
+        expect(component.errorMessage()).toBe('No tienes permiso para ver organizaciones.');
+    });
+
     describe('create mode, como no-SUPERADMIN', () => {
         beforeEach(() => {
             setup(null);

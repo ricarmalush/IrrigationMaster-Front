@@ -91,6 +91,12 @@ export class UserListComponent implements OnInit {
         this.organizationService.list(1, 100).subscribe((result) => {
             this.organizationsLoading.set(false);
             this.organizations.set(result.items);
+            if (!result.isSuccess) {
+                // Antes se dejaba el filtro vacío en silencio si esta llamada fallaba (p. ej. por
+                // un permiso denegado) -- indistinguible de "no hay organizaciones". Mismo patrón
+                // que fetch() más abajo, ya lo comprueba correctamente para el listado principal.
+                this.errorMessage.set(result.message);
+            }
         });
     }
 

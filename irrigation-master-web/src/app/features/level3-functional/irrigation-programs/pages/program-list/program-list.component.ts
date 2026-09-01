@@ -43,6 +43,11 @@ export class ProgramListComponent implements OnInit {
         // nombre) -- mismo patrón que WalkwayFormComponent usa para el picker de sectores.
         this.hydraulicSectorService.list(1, 100).subscribe((result) => {
             this.sectorNames.set(Object.fromEntries(result.items.map((s) => [s.id, s.name])));
+            if (!result.isSuccess) {
+                // Antes, un permiso denegado aquí (mismo bug ya corregido en ProgramFormComponent)
+                // se traducía en mostrar el ID crudo del sector en vez del nombre, en silencio.
+                this.errorMessage.set(result.message);
+            }
         });
     }
 

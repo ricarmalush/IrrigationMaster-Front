@@ -220,6 +220,45 @@ describe('InvoiceListComponent', () => {
             expect(assignedLicenseService.list).not.toHaveBeenCalled();
             expect(component.licenceOriginLabel(invoice({ assignedLicenseId: 'license-1' }))).toBe('Sí');
         });
+
+        // Regresión: mismo bug que motivó VIEW_HYDRAULIC_SECTORS -- un permiso denegado en
+        // cualquiera de estos catálogos se traducía en mostrar el ID crudo en vez del nombre, en
+        // silencio.
+        it('surfaces el mensaje de error cuando falla el catálogo de organizaciones', () => {
+            setup('PRESIDENTE');
+            organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver organizaciones.');
+        });
+
+        it('surfaces el mensaje de error cuando falla el catálogo de usuarios', () => {
+            setup('PRESIDENTE');
+            userService.list.and.returnValue(of<ListResult<AppUser>>({ isSuccess: false, message: 'No tienes permiso para ver usuarios.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver usuarios.');
+        });
+
+        it('SUPERADMIN: surfaces el mensaje de error cuando falla el catálogo de tipos de licencia', () => {
+            setup('SUPERADMIN');
+            licenceTypeService.list.and.returnValue(of<ListResult<LicenceType>>({ isSuccess: false, message: 'No tienes permiso para ver tipos de licencia.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver tipos de licencia.');
+        });
+
+        it('SUPERADMIN: surfaces el mensaje de error cuando falla el catálogo de licencias asignadas', () => {
+            setup('SUPERADMIN');
+            assignedLicenseService.list.and.returnValue(of<ListResult<AssignedLicense>>({ isSuccess: false, message: 'No tienes permiso para ver licencias asignadas.', items: [], totalCount: 0 }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No tienes permiso para ver licencias asignadas.');
+        });
     });
 
     describe('scopeLabel() / licenceOriginLabel()', () => {
