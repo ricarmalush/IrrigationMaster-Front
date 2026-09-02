@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
+import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { Organization } from '../../../../../shared/models/organization.model';
 import { Role } from '../../../../../shared/models/role.model';
 import { Walkway } from '../../../../../shared/models/walkway.model';
@@ -27,9 +28,14 @@ export class UserDetailComponent implements OnInit {
     private organizationService = inject(OrganizationService);
     private roleService = inject(RoleService);
     private walkwayService = inject(WalkwayService);
+    private currentSession = inject(CurrentSessionService);
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private messageService = inject(MessageService);
+
+    // El listado completo de organizaciones (desplegable "Organización") es exclusivo de
+    // SUPERADMIN -- para cualquier otro rol, ver ngOnInit()/loadUser().
+    readonly isSuperAdmin = this.currentSession.getRole() === 'SUPERADMIN';
 
     readonly isEditMode = signal(false);
     readonly loading = signal(false);
@@ -38,6 +44,7 @@ export class UserDetailComponent implements OnInit {
     readonly isActive = signal(true);
     readonly currentRole = signal<string | null>(null);
     readonly currentWalkwayCode = signal<string | null>(null);
+    readonly currentOrganizationName = signal<string | null>(null);
 
     readonly organizations = signal<Organization[]>([]);
     readonly roles = signal<Role[]>([]);
@@ -53,7 +60,10 @@ export class UserDetailComponent implements OnInit {
         roleId: ['', Validators.required],
         password: ['', Validators.required],
         street: this.fb.control<string | null>(null),
-        houseNumber: this.fb.control<number | null>(null, Validators.min(1))
+        // Obligatorio para cualquier rol salvo SUPERADMIN -- SUPERADMIN no pertenece realmente a
+        // una organización/andador (mismo criterio que exime al campo Organización), el resto sí
+        // necesita una dirección real. Mismo escudo replicado en Create/UpdateUserCommandHandler.
+        houseNumber: this.fb.control<number | null>(null, this.isSuperAdmin ? [Validators.min(1)] : [Validators.required, Validators.min(1)])
     });
 
     readonly roleActionControl = this.fb.nonNullable.control('', Validators.required);
@@ -64,16 +74,56 @@ export class UserDetailComponent implements OnInit {
     readonly actionMessage = signal<string | null>(null);
 
     ngOnInit(): void {
-        this.loadOrganizations();
+        this.userId = this.route.snapshot.paramMap.get('id');
+        const editing = !!this.userId;
+        this.isEditMode.set(editing);
+
+        // Bug real (en alta Y en edición): el desplegable "Organización" es el catálogo GLOBAL de
+        // organizaciones, exclusivo de SUPERADMIN (GetAllWithPaginationOrganizationHandler).
+        // Create/UpdateUserCommand fuerzan de todos modos organizationId a la propia organización
+        // de cualquier no-SUPERADMIN, sin importar lo que se envíe -- así que el desplegable era
+        // funcionalmente inútil para Presidente/VicePresidente tanto al crear como al editar, y la
+        // llamada solo servía para fallar con "La acción sobre 'Organización' no está permitida".
+        // Un no-SUPERADMIN nunca ve el desplegable (ver plantilla): ve el nombre de su propia
+        // organización de solo lectura -- ya conocido en edición (loadUser()) o resuelto aquí mismo
+        // con una única consulta ligera en alta (ver resolveOwnOrganization(), GetOrganizationByIdHandler
+        // permite la autoconsulta a cualquier rol autenticado, sin necesitar el listado completo).
+        if (this.isSuperAdmin) {
+            this.loadOrganizations();
+        } else if (!editing) {
+            this.resolveOwnOrganization();
+        }
         this.loadRoles();
 
-        this.userId = this.route.snapshot.paramMap.get('id');
-        if (this.userId) {
-            this.isEditMode.set(true);
+        if (editing) {
             this.form.controls.roleId.disable();
             this.form.controls.password.disable();
-            this.loadUser(this.userId);
+            if (!this.isSuperAdmin) {
+                this.form.controls.organizationId.disable();
+            }
+            this.loadUser(this.userId!);
         }
+    }
+
+    // Alta, no-SUPERADMIN: fija organizationId a la propia organización del que crea (un
+    // Presidente/VicePresidente solo puede dar de alta en la suya, de todos modos) y resuelve su
+    // nombre real para mostrarlo de solo lectura, sin cargar el catálogo completo de organizaciones.
+    private resolveOwnOrganization(): void {
+        const organizationId = this.currentSession.getOrganizationId();
+        if (!organizationId) {
+            return;
+        }
+
+        this.form.controls.organizationId.setValue(organizationId);
+        this.form.controls.organizationId.disable();
+
+        this.organizationService.getById(organizationId).subscribe((result) => {
+            if (result.isSuccess && result.data) {
+                this.currentOrganizationName.set(result.data.name);
+            } else {
+                this.errorMessage.set(result.message);
+            }
+        });
     }
 
     // El desplegable "Andador actual" solo existe en modo edición -- sin esto, un SUPERADMIN vería
@@ -233,6 +283,7 @@ export class UserDetailComponent implements OnInit {
                 this.form.patchValue(result.data);
                 this.isActive.set(result.data.isActive);
                 this.currentRole.set(result.data.role);
+                this.currentOrganizationName.set(result.data.organizationName);
                 this.currentWalkwayCode.set(result.data.walkwayCode ?? null);
                 this.walkwayActionControl.setValue(result.data.walkwayId ?? null);
                 this.loadWalkways(result.data.organizationId);

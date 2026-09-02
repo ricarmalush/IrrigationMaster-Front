@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { of } from 'rxjs';
 
+import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { HydraulicSector } from '../../../../../shared/models/hydraulic-sector.model';
 import { Organization } from '../../../../../shared/models/organization.model';
 import { Role } from '../../../../../shared/models/role.model';
@@ -36,7 +37,9 @@ const user: AppUser = {
     created: '2026-01-01',
     walkwayId: null,
     walkwayCode: null,
-    organizationName: 'Comunidad'
+    organizationName: 'Comunidad',
+    street: 'Calle Mayor',
+    houseNumber: 5
 };
 
 describe('UserDetailComponent', () => {
@@ -48,15 +51,20 @@ describe('UserDetailComponent', () => {
     let walkwayService: jasmine.SpyObj<WalkwayService>;
     let router: jasmine.SpyObj<Router>;
     let messageService: jasmine.SpyObj<MessageService>;
+    let currentSession: jasmine.SpyObj<CurrentSessionService>;
 
-    function setup(routeId: string | null): void {
+    function setup(routeId: string | null, role: string | null = 'SUPERADMIN'): void {
         userService = jasmine.createSpyObj('UserService', ['getById', 'create', 'update', 'activate', 'changeRole', 'assignWalkway', 'resetPassword']);
-        organizationService = jasmine.createSpyObj('OrganizationService', ['list']);
+        organizationService = jasmine.createSpyObj('OrganizationService', ['list', 'getById']);
         organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: true, message: 'ok', items: organizations, totalCount: 1 }));
+        organizationService.getById.and.returnValue(of<DetailResult<Organization>>({ isSuccess: true, message: 'ok', data: organizations[0] }));
         roleService = jasmine.createSpyObj('RoleService', ['list']);
         roleService.list.and.returnValue(of<ListResult<Role>>({ isSuccess: true, message: 'ok', items: roles, totalCount: 2 }));
         walkwayService = jasmine.createSpyObj('WalkwayService', ['list']);
         walkwayService.list.and.returnValue(of<ListResult<Walkway>>({ isSuccess: true, message: 'ok', items: walkways, totalCount: 1 }));
+        currentSession = jasmine.createSpyObj('CurrentSessionService', ['getRole', 'getOrganizationId']);
+        currentSession.getRole.and.returnValue(role);
+        currentSession.getOrganizationId.and.returnValue('org-1');
         router = jasmine.createSpyObj('Router', ['navigate']);
         messageService = jasmine.createSpyObj('MessageService', ['add']);
 
@@ -67,6 +75,7 @@ describe('UserDetailComponent', () => {
                 { provide: OrganizationService, useValue: organizationService },
                 { provide: RoleService, useValue: roleService },
                 { provide: WalkwayService, useValue: walkwayService },
+                { provide: CurrentSessionService, useValue: currentSession },
                 { provide: Router, useValue: router },
                 { provide: MessageService, useValue: messageService },
                 { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap(routeId ? { id: routeId } : {}) } } }
@@ -184,6 +193,99 @@ describe('UserDetailComponent', () => {
         });
     });
 
+    // Cambio de validación: HouseNumber pasa a ser obligatorio para cualquier rol salvo SUPERADMIN
+    // (que no pertenece realmente a una organización/andador, mismo criterio que exime al campo
+    // Organización). Mismo escudo replicado en Create/UpdateUserCommandHandler.
+    describe('HouseNumber obligatorio salvo SUPERADMIN', () => {
+        it('create mode, SUPERADMIN: houseNumber sigue siendo opcional', () => {
+            setup(null, 'SUPERADMIN');
+            component.ngOnInit();
+
+            expect(component.form.controls.houseNumber.hasError('required')).toBe(false);
+        });
+
+        it('create mode, no-SUPERADMIN: houseNumber es obligatorio -- el formulario no es válido sin él', () => {
+            setup(null, 'PRESIDENTE');
+            component.ngOnInit();
+            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!', street: null, houseNumber: null });
+
+            component.save();
+
+            expect(userService.create).not.toHaveBeenCalled();
+            expect(component.form.controls.houseNumber.hasError('required')).toBe(true);
+        });
+
+        it('create mode, no-SUPERADMIN: con houseNumber informado, sí se puede crear', () => {
+            setup(null, 'PRESIDENTE');
+            component.ngOnInit();
+            userService.create.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'new-id' }));
+            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!', street: null, houseNumber: 7 });
+
+            component.save();
+
+            expect(userService.create).toHaveBeenCalledWith(jasmine.objectContaining({ houseNumber: 7 }));
+        });
+
+        it('edit mode, SUPERADMIN: houseNumber sigue siendo opcional', () => {
+            setup('user-1', 'SUPERADMIN');
+            userService.getById.and.returnValue(of<DetailResult<AppUser>>({ isSuccess: true, message: 'ok', data: { ...user, houseNumber: null } }));
+            component.ngOnInit();
+
+            expect(component.form.controls.houseNumber.hasError('required')).toBe(false);
+        });
+
+        it('edit mode, no-SUPERADMIN: houseNumber es obligatorio', () => {
+            setup('user-1', 'PRESIDENTE');
+            userService.getById.and.returnValue(of<DetailResult<AppUser>>({ isSuccess: true, message: 'ok', data: { ...user, houseNumber: null } }));
+            component.ngOnInit();
+
+            expect(component.form.controls.houseNumber.hasError('required')).toBe(true);
+        });
+    });
+
+    // Bug real: Antonio (Presidente) veía "No results found" y "La acción sobre 'Organización' no
+    // está permitida" en el desplegable de Organización al crear un usuario nuevo -- el mismo
+    // catálogo global exclusivo de SUPERADMIN que ya se corrigió en edición. CreateUserCommand
+    // fuerza igualmente organizationId a la propia organización de cualquier no-SUPERADMIN, así que
+    // se fija automáticamente sin necesitar cargar el listado completo.
+    describe('create mode, como no-SUPERADMIN (Organización)', () => {
+        beforeEach(() => {
+            setup(null, 'PRESIDENTE');
+            component.ngOnInit();
+        });
+
+        it('no carga el catálogo global de organizaciones (exclusivo de SUPERADMIN)', () => {
+            expect(organizationService.list).not.toHaveBeenCalled();
+        });
+
+        it('fija organizationId a la propia organización del que crea, y deshabilita el control', () => {
+            expect(component.form.controls.organizationId.disabled).toBe(true);
+            expect(component.form.getRawValue().organizationId).toBe('org-1');
+        });
+
+        it('resuelve el nombre real de la propia organización con una única consulta ligera (getById, no list)', () => {
+            expect(organizationService.getById).toHaveBeenCalledWith('org-1');
+            expect(component.currentOrganizationName()).toBe('Comunidad');
+        });
+
+        it('surfaces the error message when resolving the own organization fails', () => {
+            organizationService.getById.and.returnValue(of<DetailResult<Organization>>({ isSuccess: false, message: 'No se encontró la organización.' }));
+
+            component.ngOnInit();
+
+            expect(component.errorMessage()).toBe('No se encontró la organización.');
+        });
+
+        it('on a valid form, creates the user with the auto-resolved organizationId', () => {
+            userService.create.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'new-id' }));
+            component.form.patchValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', roleId: 'role-1', password: 'Secret123!', houseNumber: 7 });
+
+            component.save();
+
+            expect(userService.create).toHaveBeenCalledWith(jasmine.objectContaining({ organizationId: 'org-1' }));
+        });
+    });
+
     describe('edit mode', () => {
         beforeEach(() => {
             setup('user-1');
@@ -198,6 +300,14 @@ describe('UserDetailComponent', () => {
             expect(component.currentRole()).toBe('VECINO');
             expect(component.form.controls.roleId.disabled).toBe(true);
             expect(component.form.controls.password.disabled).toBe(true);
+        });
+
+        // Regresión: para SUPERADMIN el desplegable de Organización sigue siendo editable en modo
+        // edición -- solo se omite la carga (y se sustituye por texto de solo lectura) para
+        // cualquier otro rol, ver describe('edit mode, como no-SUPERADMIN') más abajo.
+        it('SUPERADMIN: sigue cargando el catálogo de organizaciones y deja el desplegable editable', () => {
+            expect(organizationService.list).toHaveBeenCalled();
+            expect(component.form.controls.organizationId.disabled).toBe(false);
         });
 
         it('loads the walkways catalog filtered by the loaded user own organization', () => {
@@ -318,6 +428,40 @@ describe('UserDetailComponent', () => {
             expect(userService.resetPassword).toHaveBeenCalledWith('user-1', 'NewSecret123!');
             expect(component.passwordActionControl.value).toBe('');
             expect(component.confirmPasswordActionControl.value).toBe('');
+        });
+    });
+
+    // Bug real: Presidente/VicePresidente editando un usuario veían el desplegable "Organización"
+    // fallar con "La acción sobre 'Organización' no está permitida" -- GetAllWithPaginationOrganizationHandler
+    // es exclusivo de SUPERADMIN, y UpdateUserCommand ya fuerza la organización propia del que
+    // edita para cualquier no-SUPERADMIN de todos modos, así que el desplegable era funcionalmente
+    // inútil. Ahora se omite la carga y se muestra el nombre ya conocido como texto de solo lectura.
+    describe('edit mode, como no-SUPERADMIN', () => {
+        beforeEach(() => {
+            setup('user-1', 'PRESIDENTE');
+            userService.getById.and.returnValue(of<DetailResult<AppUser>>({ isSuccess: true, message: 'ok', data: user }));
+            component.ngOnInit();
+        });
+
+        it('no carga el catálogo global de organizaciones (exclusivo de SUPERADMIN)', () => {
+            expect(organizationService.list).not.toHaveBeenCalled();
+            expect(component.organizations()).toEqual([]);
+        });
+
+        it('expone el nombre de la organización actual del usuario cargado', () => {
+            expect(component.currentOrganizationName()).toBe('Comunidad');
+        });
+
+        it('deshabilita el control organizationId (no editable, ya que el backend lo ignoraría)', () => {
+            expect(component.form.controls.organizationId.disabled).toBe(true);
+        });
+
+        it('save() sigue enviando el organizationId real del usuario cargado (getRawValue incluye controles deshabilitados)', () => {
+            userService.update.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok' }));
+
+            component.save();
+
+            expect(userService.update).toHaveBeenCalledWith('user-1', jasmine.objectContaining({ organizationId: 'org-1' }));
         });
     });
 });
