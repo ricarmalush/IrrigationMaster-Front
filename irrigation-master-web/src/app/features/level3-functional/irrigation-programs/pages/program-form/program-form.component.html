@@ -92,7 +92,7 @@
                 </div>
                 <div class="flex flex-col gap-2">
                     <label for="seasonStartDay" class="text-sm">Día inicio</label>
-                    <p-inputnumber id="seasonStartDay" formControlName="startDay" [min]="1" [max]="31" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                    <p-inputnumber id="seasonStartDay" formControlName="startDay" [min]="1" [max]="maxStartDay()" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
                 </div>
                 <div class="flex flex-col gap-2">
                     <label for="seasonEndMonth" class="text-sm">Mes fin</label>
@@ -100,7 +100,7 @@
                 </div>
                 <div class="flex flex-col gap-2">
                     <label for="seasonEndDay" class="text-sm">Día fin</label>
-                    <p-inputnumber id="seasonEndDay" formControlName="endDay" [min]="1" [max]="31" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                    <p-inputnumber id="seasonEndDay" formControlName="endDay" [min]="1" [max]="maxEndDay()" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
                 </div>
             </div>
             @if (form.controls.season.errors?.['seasonIncomplete'] && form.controls.season.touched) {

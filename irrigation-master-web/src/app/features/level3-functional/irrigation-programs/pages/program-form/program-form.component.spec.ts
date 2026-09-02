@@ -162,6 +162,65 @@ describe('ProgramFormComponent', () => {
         });
     });
 
+    // Bug real: "Editar programa de riego" permitía Mes fin=11 (noviembre) + Día fin=31 (noviembre
+    // solo tiene 30 días); el backend lo rechazaba correctamente pero Angular no lo impedía en el
+    // propio formulario. maxStartDay()/maxEndDay() acotan el máximo real del mes elegido, y el
+    // effect() del componente recorta el día ya introducido si deja de caber al cambiar de mes.
+    describe('límite de Día según el mes elegido (fechas de temporada imposibles)', () => {
+        beforeEach(() => {
+            setup(null);
+            component.ngOnInit();
+            sectorsSubject.next({ isSuccess: true, message: 'ok', items: sectors, totalCount: 1 });
+        });
+
+        it('sin mes elegido todavía, el máximo por defecto sigue siendo 31 (no bloquea antes de elegir)', () => {
+            expect(component.maxStartDay()).toBe(31);
+            expect(component.maxEndDay()).toBe(31);
+        });
+
+        it('mes fin = 11 (noviembre, 30 días): maxEndDay pasa a 30', () => {
+            component.form.controls.season.controls.endMonth.setValue(11);
+
+            expect(component.maxEndDay()).toBe(30);
+        });
+
+        it('mes fin = 2 (febrero): maxEndDay pasa a 29 (año bisiesto fijo, igual que el backend)', () => {
+            component.form.controls.season.controls.endMonth.setValue(2);
+
+            expect(component.maxEndDay()).toBe(29);
+        });
+
+        it('mes inicio = 4 (abril, 30 días): maxStartDay pasa a 30', () => {
+            component.form.controls.season.controls.startMonth.setValue(4);
+
+            expect(component.maxStartDay()).toBe(30);
+        });
+
+        it('recorta automáticamente Día fin ya introducido si deja de caber en el nuevo mes', () => {
+            component.form.controls.season.controls.endDay.setValue(31);
+
+            component.form.controls.season.controls.endMonth.setValue(11);
+
+            expect(component.form.controls.season.controls.endDay.value).toBe(30);
+        });
+
+        it('recorta automáticamente Día inicio ya introducido si deja de caber en el nuevo mes', () => {
+            component.form.controls.season.controls.startDay.setValue(31);
+
+            component.form.controls.season.controls.startMonth.setValue(4);
+
+            expect(component.form.controls.season.controls.startDay.value).toBe(30);
+        });
+
+        it('no recorta un día que sigue cabiendo en el nuevo mes', () => {
+            component.form.controls.season.controls.endDay.setValue(15);
+
+            component.form.controls.season.controls.endMonth.setValue(11);
+
+            expect(component.form.controls.season.controls.endDay.value).toBe(15);
+        });
+    });
+
     describe('create mode', () => {
         beforeEach(() => {
             setup(null);

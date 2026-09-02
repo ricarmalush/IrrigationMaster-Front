@@ -1,5 +1,6 @@
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -87,6 +88,31 @@ export class ProgramFormComponent implements OnInit {
             { validators: seasonAllOrNothingValidator }
         )
     });
+
+    // Bug real: "Día inicio"/"Día fin" aceptaban 1-31 sin importar el mes elegido (p. ej. mes 11 +
+    // día 31, que no existe) -- el backend lo rechazaba correctamente pero Angular no lo impedía en
+    // el propio formulario. maxStartDay/maxEndDay reaccionan al mes elegido para acotar el máximo
+    // real (28/29/30/31, año 2000 fijo como bisiesto -- mismo criterio que IsValidMonthDay en
+    // IrrigationProgramValidatorExtensions del backend). El recorte del día ya introducido se hace
+    // con una suscripción directa a valueChanges (no effect()): así es síncrono con setValue(), sin
+    // depender de que algo dispare un ciclo de detección de cambios.
+    private readonly startMonthValue = toSignal(this.form.controls.season.controls.startMonth.valueChanges, {
+        initialValue: this.form.controls.season.controls.startMonth.value
+    });
+    private readonly endMonthValue = toSignal(this.form.controls.season.controls.endMonth.valueChanges, {
+        initialValue: this.form.controls.season.controls.endMonth.value
+    });
+    readonly maxStartDay = computed(() => this.daysInMonth(this.startMonthValue()));
+    readonly maxEndDay = computed(() => this.daysInMonth(this.endMonthValue()));
+
+    constructor() {
+        this.form.controls.season.controls.startMonth.valueChanges.subscribe((month) =>
+            this.clampDay(this.form.controls.season.controls.startDay, this.daysInMonth(month))
+        );
+        this.form.controls.season.controls.endMonth.valueChanges.subscribe((month) =>
+            this.clampDay(this.form.controls.season.controls.endDay, this.daysInMonth(month))
+        );
+    }
 
     ngOnInit(): void {
         this.loadSectors();
@@ -217,6 +243,22 @@ export class ProgramFormComponent implements OnInit {
                 this.errorMessage.set(result.message);
             }
         });
+    }
+
+    // Año bisiesto fijo (2000, igual que el backend) para que Febrero admita el día 29. Sin mes
+    // elegido todavía, se mantiene el máximo de 31 (comportamiento previo) para no bloquear al
+    // usuario antes de que seleccione uno.
+    private daysInMonth(month: number | null): number {
+        if (!month || month < 1 || month > 12) {
+            return 31;
+        }
+        return new Date(2000, month, 0).getDate();
+    }
+
+    private clampDay(control: AbstractControl<number | null>, max: number): void {
+        if ((control.value ?? 0) > max) {
+            control.setValue(max);
+        }
     }
 
     private defaultStartTime(): Date {
