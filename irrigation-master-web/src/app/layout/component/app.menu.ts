@@ -26,6 +26,11 @@ const IRRIGATION_PROGRAM_ROLES = ['SUPERADMIN', 'COORDINADOR_RIEGO'];
 // defecto -- este es el conjunto aprobado para el gating del Front (confirmado con el usuario,
 // sin VicePresidente).
 const INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO'];
+// "Estado de Riego" para Vecino pasa a ser directamente la vista de su propio andador
+// (my-irrigation, ya construida) en vez de la org-wide: la vista de todos los andadores no le
+// aporta nada que no vea ya en la suya, y "Mi Riego" queda oculto para no duplicar el mismo
+// destino con dos etiquetas distintas. Presidente/Vicepresidente/Coordinador de Riego no cambian.
+const VECINO_ROLE = 'VECINO';
 
 @Component({
     selector: 'app-menu',
@@ -89,10 +94,11 @@ export class AppMenu {
         {
             label: 'Riego',
             items: [
-                { label: 'Estado de Riego', icon: 'pi pi-fw pi-chart-line', routerLink: ['/irrigation-status'] },
-                // Sin gating de rol, visible para los 3 (SUPERADMIN/Presidente/Vecino) -- igual que
-                // "Estado de Riego" y que OnMyIrrigationClicked en AdminMenuPage.xaml.cs de la App.
-                { label: 'Mi Riego', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/my-irrigation'] },
+                // Vecino: "Estado de Riego" navega directamente a la vista de su propio andador
+                // (my-irrigation) -- "Mi Riego" queda oculto por redundante. Presidente/Vicepresidente/
+                // Coordinador de Riego siguen viendo ambos, sin cambios.
+                { label: 'Estado de Riego', icon: 'pi pi-fw pi-chart-line', routerLink: [this.isVecino() ? '/my-irrigation' : '/irrigation-status'] },
+                ...(this.isVecino() ? [] : [{ label: 'Mi Riego', icon: 'pi pi-fw pi-wave-pulse', routerLink: ['/my-irrigation'] }]),
                 ...(this.canApproveTurns() ? [{ label: 'Aprobar Turnos', icon: 'pi pi-fw pi-check-square', routerLink: ['/irrigation-turns/approve'] }] : []),
                 ...(this.canManageIrrigationPrograms() ? [{ label: 'Calendario de Riego', icon: 'pi pi-fw pi-calendar', routerLink: ['/irrigation-programs'] }] : [])
             ]
@@ -142,6 +148,10 @@ export class AppMenu {
 
     private isSuperAdmin(): boolean {
         return this.currentSession.role() === 'SUPERADMIN';
+    }
+
+    private isVecino(): boolean {
+        return this.currentSession.role() === VECINO_ROLE;
     }
 
     // Mismo gating que los nuevos permisos backend VIEW_ORG_USERS/MANAGE_ORG_STRUCTURE.

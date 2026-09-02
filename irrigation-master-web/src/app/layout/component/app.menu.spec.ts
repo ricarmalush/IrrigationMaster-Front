@@ -25,6 +25,12 @@ function itemVisible(component: AppMenu, groupLabel: string, itemLabel: string):
     return group?.items?.some((i) => i.label === itemLabel) ?? false;
 }
 
+function itemRouterLink(component: AppMenu, groupLabel: string, itemLabel: string): string | undefined {
+    const group = component.model().find((g) => g.label === groupLabel);
+    const item = group?.items?.find((i) => i.label === itemLabel);
+    return (item?.routerLink as string[] | undefined)?.[0];
+}
+
 describe('AppMenu', () => {
     let component: AppMenu;
     let fixture: ComponentFixture<AppMenu>;
@@ -99,18 +105,38 @@ describe('AppMenu', () => {
     });
 
     describe('andamiaje de navegación (espejo de AdminMenuPage de la App)', () => {
-        it('always shows "Estado de Riego", "Mi Riego", "Notificaciones" and "Configuración del Sistema", regardless of role', () => {
+        it('always shows "Estado de Riego", "Notificaciones" and "Configuración del Sistema", regardless of role', () => {
             expect(itemVisible(component, 'Riego', 'Estado de Riego')).toBe(true);
-            expect(itemVisible(component, 'Riego', 'Mi Riego')).toBe(true);
             expect(itemVisible(component, 'Notificaciones', 'Notificaciones')).toBe(true);
             expect(itemVisible(component, 'Sistema', 'Configuración del Sistema')).toBe(true);
 
             currentSession.establish(buildToken('VECINO'));
 
             expect(itemVisible(component, 'Riego', 'Estado de Riego')).toBe(true);
-            expect(itemVisible(component, 'Riego', 'Mi Riego')).toBe(true);
             expect(itemVisible(component, 'Notificaciones', 'Notificaciones')).toBe(true);
             expect(itemVisible(component, 'Sistema', 'Configuración del Sistema')).toBe(true);
+        });
+
+        it('shows "Mi Riego" for SUPERADMIN/PRESIDENTE/VICEPRESIDENTE/COORDINADOR_RIEGO, but hides it for VECINO (queda redundante con "Estado de Riego")', () => {
+            for (const role of ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE', 'COORDINADOR_RIEGO']) {
+                currentSession.establish(buildToken(role));
+                expect(itemVisible(component, 'Riego', 'Mi Riego')).toBe(true);
+            }
+
+            currentSession.establish(buildToken('VECINO'));
+            expect(itemVisible(component, 'Riego', 'Mi Riego')).toBe(false);
+        });
+
+        // El fix real de esta sesión: para VECINO, "Estado de Riego" pasa a apuntar directamente a
+        // la vista de su propio andador (/my-irrigation) en vez de la org-wide (/irrigation-status).
+        it('routes "Estado de Riego" to /my-irrigation for VECINO, but to /irrigation-status for every other role', () => {
+            currentSession.establish(buildToken('VECINO'));
+            expect(itemRouterLink(component, 'Riego', 'Estado de Riego')).toBe('/my-irrigation');
+
+            for (const role of ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE', 'COORDINADOR_RIEGO']) {
+                currentSession.establish(buildToken(role));
+                expect(itemRouterLink(component, 'Riego', 'Estado de Riego')).toBe('/irrigation-status');
+            }
         });
 
         it('hides "Aprobar Turnos" for a VECINO but shows it for SUPERADMIN/PRESIDENTE/VICEPRESIDENTE', () => {

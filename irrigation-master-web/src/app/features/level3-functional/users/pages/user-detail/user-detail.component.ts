@@ -51,7 +51,9 @@ export class UserDetailComponent implements OnInit {
         email: ['', [Validators.required, Validators.email]],
         organizationId: ['', Validators.required],
         roleId: ['', Validators.required],
-        password: ['', Validators.required]
+        password: ['', Validators.required],
+        street: this.fb.control<string | null>(null),
+        houseNumber: this.fb.control<number | null>(null, Validators.min(1))
     });
 
     readonly roleActionControl = this.fb.nonNullable.control('', Validators.required);
@@ -106,7 +108,15 @@ export class UserDetailComponent implements OnInit {
 
         if (this.isEditMode()) {
             this.userService
-                .update(this.userId!, { id: this.userId!, firstName: value.firstName, lastName: value.lastName, email: value.email, organizationId: value.organizationId })
+                .update(this.userId!, {
+                    id: this.userId!,
+                    firstName: value.firstName,
+                    lastName: value.lastName,
+                    email: value.email,
+                    organizationId: value.organizationId,
+                    street: value.street,
+                    houseNumber: value.houseNumber
+                })
                 .subscribe(onResult);
         } else {
             this.userService.create(value).subscribe(onResult);

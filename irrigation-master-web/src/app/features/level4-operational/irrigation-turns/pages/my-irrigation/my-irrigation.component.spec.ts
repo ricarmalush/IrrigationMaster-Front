@@ -14,6 +14,7 @@ function requestedTurn(overrides: Partial<WalkwayRequestedTurn> = {}): WalkwayRe
         status: 'Requested',
         scheduledStart: '2026-08-26T08:00:00Z',
         scheduledEnd: '2026-08-26T10:00:00Z',
+        houseNumber: 12,
         ...overrides
     };
 }

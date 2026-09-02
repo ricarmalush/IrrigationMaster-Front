@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { toDetailResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse } from '../../../../shared/models/api-response.model';
-import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurn, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
+import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurnsByWalkway, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -16,8 +16,10 @@ export class IrrigationTurnService {
 
     // GetPendingApprovalIrrigationTurnsQuery no pagina -- devuelve un array plano dentro de
     // Response<T>, no ResponsePagination<T> -- por eso DetailResult<T[]> en vez de ListResult<T>.
-    listPendingApproval(): Observable<DetailResult<PendingApprovalTurn[]>> {
-        return toDetailResult(this.http.get<ApiResponse<PendingApprovalTurn[]>>(`${this.apiUrl}/pending-approval`));
+    // Ya viene agrupado por andador desde el backend (solo los que tienen algún turno pendiente),
+    // ordenado dentro de cada grupo por prioridad -- no hace falta reordenar en el cliente.
+    listPendingApproval(): Observable<DetailResult<PendingApprovalTurnsByWalkway[]>> {
+        return toDetailResult(this.http.get<ApiResponse<PendingApprovalTurnsByWalkway[]>>(`${this.apiUrl}/pending-approval`));
     }
 
     // Sin reject(): el backend no lo expone (ni comando, ni ruta -- ver Cancel() en el dominio,

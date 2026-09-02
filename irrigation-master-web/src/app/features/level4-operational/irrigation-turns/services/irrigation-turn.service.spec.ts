@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurn, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
+import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurn, PendingApprovalTurnsByWalkway, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../shared/models/result.model';
 import { IrrigationTurnService } from './irrigation-turn.service';
 
@@ -15,7 +15,14 @@ const turn: PendingApprovalTurn = {
     requesterFullName: 'Ricardo Ruiz',
     hydraulicSectorId: 'sector-1',
     scheduledStart: '2026-08-25T08:00:00Z',
-    scheduledEnd: '2026-08-25T09:00:00Z'
+    scheduledEnd: '2026-08-25T09:00:00Z',
+    houseNumber: 12
+};
+
+const pendingGroup: PendingApprovalTurnsByWalkway = {
+    walkwayId: 'walkway-1',
+    walkwayCode: 'A-01',
+    turns: [turn]
 };
 
 const walkwayStatus: WalkwayIrrigationStatus = {
@@ -51,20 +58,20 @@ describe('IrrigationTurnService', () => {
     });
 
     describe('listPendingApproval()', () => {
-        it('maps a successful response', () => {
-            let result: DetailResult<PendingApprovalTurn[]> | undefined;
+        it('maps a successful response, already grouped by walkway', () => {
+            let result: DetailResult<PendingApprovalTurnsByWalkway[]> | undefined;
 
             service.listPendingApproval().subscribe((r) => (result = r));
 
             const req = httpMock.expectOne(`${BASE_URL}/pending-approval`);
             expect(req.request.method).toBe('GET');
-            req.flush({ data: [turn], isSuccess: true, message: 'ok' });
+            req.flush({ data: [pendingGroup], isSuccess: true, message: 'ok' });
 
-            expect(result).toEqual({ isSuccess: true, message: 'ok', data: [turn] });
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: [pendingGroup] });
         });
 
         it('resolves an empty list as success with no items', () => {
-            let result: DetailResult<PendingApprovalTurn[]> | undefined;
+            let result: DetailResult<PendingApprovalTurnsByWalkway[]> | undefined;
 
             service.listPendingApproval().subscribe((r) => (result = r));
 
@@ -74,7 +81,7 @@ describe('IrrigationTurnService', () => {
         });
 
         it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
-            let result: DetailResult<PendingApprovalTurn[]> | undefined;
+            let result: DetailResult<PendingApprovalTurnsByWalkway[]> | undefined;
 
             service.listPendingApproval().subscribe((r) => (result = r));
 
@@ -165,7 +172,7 @@ describe('IrrigationTurnService', () => {
         const myStatus: MyWalkwayIrrigationStatus = {
             walkwayId: 'walkway-1',
             walkwayCode: 'A-01',
-            requestsTomorrow: [{ turnId: 'turn-1', userId: 'user-1', fullName: 'Ricardo Ruiz', status: 'Requested', scheduledStart: '2026-08-26T08:00:00Z', scheduledEnd: '2026-08-26T10:00:00Z' }],
+            requestsTomorrow: [{ turnId: 'turn-1', userId: 'user-1', fullName: 'Ricardo Ruiz', status: 'Requested', scheduledStart: '2026-08-26T08:00:00Z', scheduledEnd: '2026-08-26T10:00:00Z', houseNumber: 12 }],
             liveToday: [walkwayStatus.neighbors[0]]
         };
 

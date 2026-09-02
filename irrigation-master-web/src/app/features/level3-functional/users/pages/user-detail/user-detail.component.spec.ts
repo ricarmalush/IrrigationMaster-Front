@@ -154,17 +154,28 @@ describe('UserDetailComponent', () => {
 
         it('on a valid form, creates the user and navigates back to the list', () => {
             userService.create.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'new-id' }));
-            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!' });
+            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!', street: null, houseNumber: null });
 
             component.save();
 
-            expect(userService.create).toHaveBeenCalledWith({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!' });
+            expect(userService.create).toHaveBeenCalledWith({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!', street: null, houseNumber: null });
             expect(router.navigate).toHaveBeenCalledWith(['/users']);
+        });
+
+        it('on a valid form with an address, creates the user including street and houseNumber', () => {
+            userService.create.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'new-id' }));
+            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!', street: 'Calle Mayor', houseNumber: 12 });
+
+            component.save();
+
+            expect(userService.create).toHaveBeenCalledWith(
+                jasmine.objectContaining({ street: 'Calle Mayor', houseNumber: 12 })
+            );
         });
 
         it('on a 400 with a backend validation message, shows it and does not navigate', () => {
             userService.create.and.returnValue(of<OperationResult<string>>({ isSuccess: false, message: 'El correo ya está en uso.' }));
-            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!' });
+            component.form.setValue({ firstName: 'Luis', lastName: 'Pérez', email: 'luis@example.com', organizationId: 'org-1', roleId: 'role-1', password: 'Secret123!', street: null, houseNumber: null });
 
             component.save();
 
@@ -210,7 +221,15 @@ describe('UserDetailComponent', () => {
 
             component.save();
 
-            expect(userService.update).toHaveBeenCalledWith('user-1', { id: 'user-1', firstName: 'Ana', lastName: 'García', email: 'ana@example.com', organizationId: 'org-1' });
+            expect(userService.update).toHaveBeenCalledWith('user-1', {
+                id: 'user-1',
+                firstName: 'Ana',
+                lastName: 'García',
+                email: 'ana@example.com',
+                organizationId: 'org-1',
+                street: user.street ?? null,
+                houseNumber: user.houseNumber ?? null
+            });
         });
 
         it('activateUser(): activates and flips isActive on success', () => {

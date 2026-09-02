@@ -4,7 +4,7 @@ import { of } from 'rxjs';
 
 import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { HydraulicSector } from '../../../../../shared/models/hydraulic-sector.model';
-import { PendingApprovalTurn } from '../../../../../shared/models/irrigation-turn.model';
+import { PendingApprovalTurn, PendingApprovalTurnsByWalkway } from '../../../../../shared/models/irrigation-turn.model';
 import { DetailResult, ListResult, OperationResult } from '../../../../../shared/models/result.model';
 import { HydraulicSectorService } from '../../../../level2-structure/hydraulic-sectors/services/hydraulic-sector.service';
 import { IrrigationTurnService } from '../../services/irrigation-turn.service';
@@ -18,7 +18,15 @@ const turn: PendingApprovalTurn = {
     requesterFullName: 'Ricardo Ruiz',
     hydraulicSectorId: 'sector-1',
     scheduledStart: '2026-08-25T08:00:00Z',
-    scheduledEnd: '2026-08-25T09:00:00Z'
+    scheduledEnd: '2026-08-25T09:00:00Z',
+    houseNumber: 12
+};
+
+// Ya agrupado por andador, tal como lo devuelve el backend (PendingApprovalTurnsByWalkwayDto).
+const group: PendingApprovalTurnsByWalkway = {
+    walkwayId: 'walkway-1',
+    walkwayCode: 'A-01',
+    turns: [turn]
 };
 
 describe('TurnApprovalListComponent', () => {
@@ -31,7 +39,7 @@ describe('TurnApprovalListComponent', () => {
 
     function setup(role: string | null): void {
         turnService = jasmine.createSpyObj('IrrigationTurnService', ['listPendingApproval', 'approve']);
-        turnService.listPendingApproval.and.returnValue(of<DetailResult<PendingApprovalTurn[]>>({ isSuccess: true, message: 'ok', data: [] }));
+        turnService.listPendingApproval.and.returnValue(of<DetailResult<PendingApprovalTurnsByWalkway[]>>({ isSuccess: true, message: 'ok', data: [] }));
         hydraulicSectorService = jasmine.createSpyObj('HydraulicSectorService', ['list']);
         hydraulicSectorService.list.and.returnValue(of<ListResult<HydraulicSector>>({ isSuccess: true, message: 'ok', items: [sector], totalCount: 1 }));
         currentSession = jasmine.createSpyObj('CurrentSessionService', ['getRole']);
@@ -78,34 +86,34 @@ describe('TurnApprovalListComponent', () => {
     });
 
     describe('ngOnInit()', () => {
-        it('loads the pending turns and resolves sector names by id', () => {
+        it('loads the pending turns already grouped by walkway, and resolves sector names by id', () => {
             setup('SUPERADMIN');
-            turnService.listPendingApproval.and.returnValue(of<DetailResult<PendingApprovalTurn[]>>({ isSuccess: true, message: 'ok', data: [turn] }));
+            turnService.listPendingApproval.and.returnValue(of<DetailResult<PendingApprovalTurnsByWalkway[]>>({ isSuccess: true, message: 'ok', data: [group] }));
 
             component.ngOnInit();
 
-            expect(component.turns()).toEqual([turn]);
+            expect(component.groups()).toEqual([group]);
             expect(component.sectorName('sector-1')).toBe('Sector Norte');
             expect(component.errorMessage()).toBeNull();
         });
 
-        it('shows an empty table (no error) when there are no pending turns', () => {
+        it('shows an empty state (no error) when there are no pending turns', () => {
             setup('SUPERADMIN');
 
             component.ngOnInit();
 
-            expect(component.turns()).toEqual([]);
+            expect(component.groups()).toEqual([]);
             expect(component.errorMessage()).toBeNull();
         });
 
-        it('surfaces the backend/network error message and clears the table on failure', () => {
+        it('surfaces the backend/network error message and clears the groups on failure', () => {
             setup('SUPERADMIN');
-            turnService.listPendingApproval.and.returnValue(of<DetailResult<PendingApprovalTurn[]>>({ isSuccess: false, message: 'No se pudo establecer comunicación con el servidor.' }));
+            turnService.listPendingApproval.and.returnValue(of<DetailResult<PendingApprovalTurnsByWalkway[]>>({ isSuccess: false, message: 'No se pudo establecer comunicación con el servidor.' }));
 
             component.ngOnInit();
 
             expect(component.errorMessage()).toBe('No se pudo establecer comunicación con el servidor.');
-            expect(component.turns()).toEqual([]);
+            expect(component.groups()).toEqual([]);
         });
     });
 

@@ -48,6 +48,19 @@
                 }
             </div>
 
+            <div class="flex flex-col gap-2">
+                <label for="street" class="text-sm font-semibold">Calle (opcional)</label>
+                <input pInputText id="street" formControlName="street" class="w-full" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label for="houseNumber" class="text-sm font-semibold">Número de casa (opcional)</label>
+                <input pInputText type="number" id="houseNumber" formControlName="houseNumber" min="1" class="w-full" />
+                @if (form.controls.houseNumber.invalid && form.controls.houseNumber.touched) {
+                    <small class="text-red-500 text-sm">El número de casa debe ser mayor que cero.</small>
+                }
+            </div>
+
             @if (!isEditMode()) {
                 <div class="flex flex-col gap-2">
                     <label for="roleId" class="text-sm font-semibold">Rol</label>

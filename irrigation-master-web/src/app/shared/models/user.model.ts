@@ -16,6 +16,10 @@ export interface AppUser {
     // isActive:false, así que solo DeactivatedAt permite diferenciarlos en la UI.
     deactivatedAt?: string | null;
     deactivatedBy?: string | null;
+    // Dirección: ambos opcionales (no todos los usuarios la necesitan, p. ej. Presidente/SUPERADMIN).
+    // HouseNumber también alimenta el orden de prioridad de turnos de riego por andador.
+    street?: string | null;
+    houseNumber?: number | null;
 }
 
 export interface CreateUserRequest {
@@ -25,6 +29,8 @@ export interface CreateUserRequest {
     organizationId: string;
     roleId: string;
     password: string;
+    street?: string | null;
+    houseNumber?: number | null;
 }
 
 export interface UpdateUserRequest {
@@ -33,6 +39,8 @@ export interface UpdateUserRequest {
     lastName: string;
     email: string;
     organizationId: string;
+    street?: string | null;
+    houseNumber?: number | null;
 }
 
 // "Cambiar mi contraseña": distinto de resetPassword (un admin reseteando la de otro) -- este

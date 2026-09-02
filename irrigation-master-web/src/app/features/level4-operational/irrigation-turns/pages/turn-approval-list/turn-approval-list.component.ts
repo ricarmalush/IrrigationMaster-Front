@@ -7,7 +7,7 @@ import { TableModule } from 'primeng/table';
 import { ToolbarModule } from 'primeng/toolbar';
 import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { HydraulicSectorService } from '../../../../level2-structure/hydraulic-sectors/services/hydraulic-sector.service';
-import { PendingApprovalTurn } from '../../../../../shared/models/irrigation-turn.model';
+import { PendingApprovalTurn, PendingApprovalTurnsByWalkway } from '../../../../../shared/models/irrigation-turn.model';
 import { IrrigationTurnService } from '../../services/irrigation-turn.service';
 
 // Mismos roles que ShowApproveTurns en AdminMenuPage de la App -- Coordinador de Riego queda
@@ -28,7 +28,10 @@ export class TurnApprovalListComponent implements OnInit {
 
     readonly canApprove = APPROVE_TURN_ROLES.includes(this.currentSession.getRole() ?? '');
 
-    readonly turns = signal<PendingApprovalTurn[]>([]);
+    // Ya viene agrupado por andador desde el backend (GetPendingApprovalIrrigationTurnsHandler),
+    // solo con los andadores que tienen algún turno pendiente y ya ordenado por prioridad
+    // (HouseNumber descendente, ThenBy hora de solicitud) dentro de cada grupo.
+    readonly groups = signal<PendingApprovalTurnsByWalkway[]>([]);
     readonly loading = signal(false);
     readonly approvingId = signal<string | null>(null);
     readonly errorMessage = signal<string | null>(null);
@@ -72,7 +75,7 @@ export class TurnApprovalListComponent implements OnInit {
 
         this.turnService.listPendingApproval().subscribe((result) => {
             this.loading.set(false);
-            this.turns.set(result.data ?? []);
+            this.groups.set(result.data ?? []);
             this.errorMessage.set(result.isSuccess ? null : result.message);
         });
     }

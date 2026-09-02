@@ -1,6 +1,7 @@
 // Espejo de PendingApprovalIrrigationTurnDto (GET IrrigationTurns/pending-approval): solo turnos en
 // estado "Requested" de la organización del que llama, ya con el nombre del solicitante resuelto,
-// pero el sector solo como id (se resuelve en el cliente, igual que en Programs).
+// pero el sector solo como id (se resuelve en el cliente, igual que en Programs). houseNumber
+// puede venir null si el solicitante todavía no tiene número de casa registrado.
 export interface PendingApprovalTurn {
     id: string;
     requesterId: string;
@@ -8,6 +9,16 @@ export interface PendingApprovalTurn {
     hydraulicSectorId: string;
     scheduledStart: string;
     scheduledEnd: string;
+    houseNumber: number | null;
+}
+
+// Espejo de PendingApprovalTurnsByWalkwayDto: los turnos pendientes ya vienen agrupados por
+// andador desde el backend (solo los andadores con al menos uno) y ordenados dentro de cada grupo
+// por prioridad -- HouseNumber descendente, ThenBy hora de solicitud.
+export interface PendingApprovalTurnsByWalkway {
+    walkwayId: string;
+    walkwayCode: string;
+    turns: PendingApprovalTurn[];
 }
 
 export type NeighborTurnStatus = 'Watering' | 'Waiting' | 'Completed';
@@ -44,7 +55,8 @@ export interface CreateIrrigationTurnRequest {
 
 // Espejo de WalkwayRequestedTurnDto (GET IrrigationTurns/my-walkway-status): a diferencia de
 // NeighborIrrigationStatus, Status aquí NO colapsa Requested/Pending -- expone el estado real del
-// dominio tal cual. La vista "Mi Riego" no lo muestra (mismo criterio que la App).
+// dominio tal cual. La vista "Mi Riego" no lo muestra (mismo criterio que la App). Ya viene
+// ordenada por prioridad desde el backend (HouseNumber descendente, ThenBy hora de solicitud).
 export interface WalkwayRequestedTurn {
     turnId: string;
     userId: string;
@@ -52,6 +64,7 @@ export interface WalkwayRequestedTurn {
     status: string;
     scheduledStart: string;
     scheduledEnd: string;
+    houseNumber: number | null;
 }
 
 // Espejo de MyWalkwayIrrigationStatusDto: acotado SIEMPRE al andador del propio llamador (nunca un

@@ -13,33 +13,38 @@
         <p-message severity="error" [text]="errorMessage()!" styleClass="mb-4 w-full"></p-message>
     }
 
-    <p-table [value]="turns()" [loading]="loading()" dataKey="id" [stripedRows]="true" [rowHover]="true" responsiveLayout="scroll">
-        <ng-template pTemplate="header">
-            <tr>
-                <th>Solicitante</th>
-                <th>Sector</th>
-                <th>Inicio</th>
-                <th>Fin</th>
-                <th style="width: 10rem"></th>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-turn>
-            <tr>
-                <td>{{ turn.requesterFullName }}</td>
-                <td>{{ sectorName(turn.hydraulicSectorId) }}</td>
-                <td>{{ turn.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td>{{ turn.scheduledEnd | date: 'HH:mm' }}</td>
-                <td>
-                    @if (canApprove) {
-                        <button pButton type="button" label="Aprobar" icon="pi pi-check" [loading]="approvingId() === turn.id" (click)="approve(turn)"></button>
-                    }
-                </td>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-            <tr>
-                <td colspan="5" class="text-center">No hay turnos pendientes de aprobar.</td>
-            </tr>
-        </ng-template>
-    </p-table>
+    @if (!loading() && groups().length === 0) {
+        <p class="text-center">No hay turnos pendientes de aprobar.</p>
+    }
+
+    @for (group of groups(); track group.walkwayId) {
+        <h6 class="mt-4 mb-2">Andador {{ group.walkwayCode }}</h6>
+
+        <p-table [value]="group.turns" [loading]="loading()" dataKey="id" [stripedRows]="true" [rowHover]="true" responsiveLayout="scroll" styleClass="mb-4">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Nº casa</th>
+                    <th>Solicitante</th>
+                    <th>Sector</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th style="width: 10rem"></th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-turn>
+                <tr>
+                    <td>{{ turn.houseNumber ?? '—' }}</td>
+                    <td>{{ turn.requesterFullName }}</td>
+                    <td>{{ sectorName(turn.hydraulicSectorId) }}</td>
+                    <td>{{ turn.scheduledStart | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ turn.scheduledEnd | date: 'HH:mm' }}</td>
+                    <td>
+                        @if (canApprove) {
+                            <button pButton type="button" label="Aprobar" icon="pi pi-check" [loading]="approvingId() === turn.id" (click)="approve(turn)"></button>
+                        }
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    }
 </div>
