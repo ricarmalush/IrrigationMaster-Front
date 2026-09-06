@@ -5,7 +5,7 @@ import { environment } from '../../../../../environments/environment';
 import { CurrentSessionService } from '../../../../core/services/current-session';
 import { toDetailResult, toListResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse, PagedApiResponse } from '../../../../shared/models/api-response.model';
-import { CreateIrrigationProgramRequest, IrrigationProgram, UpdateIrrigationProgramRequest } from '../../../../shared/models/irrigation-program.model';
+import { CreateIrrigationProgramRequest, IrrigationProgram, IsIrrigationDayResult, UpdateIrrigationProgramRequest } from '../../../../shared/models/irrigation-program.model';
 import { DetailResult, ListResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -40,11 +40,13 @@ export class IrrigationProgramService {
 
     // GetIsIrrigationDayQuery: plantilla teórica (¿debería regarse?), deliberadamente separada de
     // GetOrganizationIrrigationStatusQuery (turnos reales). `date` en formato "yyyy-MM-dd".
-    isIrrigationDay(hydraulicSectorId: string, date?: string): Observable<OperationResult<boolean>> {
+    // isIrrigationDay/isHoliday son independientes: un festivo NUNCA condiciona isIrrigationDay ni
+    // bloquea la creación de turnos (el backend tampoco lo hace) -- es solo un aviso informativo.
+    isIrrigationDay(hydraulicSectorId: string, date?: string): Observable<OperationResult<IsIrrigationDayResult>> {
         let params = new HttpParams().set('HydraulicSectorId', hydraulicSectorId);
         if (date) {
             params = params.set('Date', date);
         }
-        return toOperationResult(this.http.get<ApiResponse<boolean>>(`${this.apiUrl}/IsIrrigationDay`, { params }));
+        return toOperationResult(this.http.get<ApiResponse<IsIrrigationDayResult>>(`${this.apiUrl}/IsIrrigationDay`, { params }));
     }
 }

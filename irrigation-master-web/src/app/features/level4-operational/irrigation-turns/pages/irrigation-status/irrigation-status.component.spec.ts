@@ -3,7 +3,7 @@ import { MessageService } from 'primeng/api';
 import { of } from 'rxjs';
 
 import { CurrentSessionService } from '../../../../../core/services/current-session';
-import { IrrigationProgram } from '../../../../../shared/models/irrigation-program.model';
+import { IrrigationProgram, IsIrrigationDayResult } from '../../../../../shared/models/irrigation-program.model';
 import { NeighborIrrigationStatus, WalkwayIrrigationStatus } from '../../../../../shared/models/irrigation-turn.model';
 import { AppUser } from '../../../../../shared/models/user.model';
 import { Walkway } from '../../../../../shared/models/walkway.model';
@@ -77,7 +77,7 @@ describe('IrrigationStatusComponent', () => {
 
         programService = jasmine.createSpyObj('IrrigationProgramService', ['list', 'isIrrigationDay']);
         programService.list.and.returnValue(of<ListResult<IrrigationProgram>>({ isSuccess: true, message: 'ok', items: [program], totalCount: 1 }));
-        programService.isIrrigationDay.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+        programService.isIrrigationDay.and.returnValue(of<OperationResult<IsIrrigationDayResult>>({ isSuccess: true, message: 'ok', data: { isIrrigationDay: true, isHoliday: false } }));
 
         walkwayService = jasmine.createSpyObj('WalkwayService', ['list']);
         walkwayService.list.and.returnValue(of<ListResult<Walkway>>({ isSuccess: true, message: 'ok', items: [walkwayA, walkwayB], totalCount: 2 }));
@@ -187,7 +187,7 @@ describe('IrrigationStatusComponent', () => {
         it('shows "No hay riego programado hoy." when the empty walkway\'s sector is not an irrigation day', () => {
             const emptyStatus: WalkwayIrrigationStatus[] = [{ walkwayId: 'walkway-1', walkwayCode: 'A-01', neighbors: [] }];
             setup('user-me', emptyStatus);
-            programService.isIrrigationDay.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: false }));
+            programService.isIrrigationDay.and.returnValue(of<OperationResult<IsIrrigationDayResult>>({ isSuccess: true, message: 'ok', data: { isIrrigationDay: false, isHoliday: false } }));
 
             component.ngOnInit();
 
@@ -195,20 +195,42 @@ describe('IrrigationStatusComponent', () => {
             expect(component.emptyStateMessage('walkway-1')).toBe('No hay riego programado hoy.');
         });
 
+        it('shows "No hay riego programado hoy." (sin mención a festivo) when isIrrigationDay is false even on a holiday', () => {
+            // isHoliday nunca debe filtrarse a este mensaje -- solo isIrrigationDay decide si hay
+            // riego o no. Confirmado con el Presidente: un festivo no bloquea ni condiciona nada.
+            const emptyStatus: WalkwayIrrigationStatus[] = [{ walkwayId: 'walkway-1', walkwayCode: 'A-01', neighbors: [] }];
+            setup('user-me', emptyStatus);
+            programService.isIrrigationDay.and.returnValue(of<OperationResult<IsIrrigationDayResult>>({ isSuccess: true, message: 'ok', data: { isIrrigationDay: false, isHoliday: true } }));
+
+            component.ngOnInit();
+
+            expect(component.emptyStateMessage('walkway-1')).toBe('No hay riego programado hoy.');
+        });
+
         it('shows "Sin actividad todavía." when the empty walkway\'s sector IS an irrigation day', () => {
             const emptyStatus: WalkwayIrrigationStatus[] = [{ walkwayId: 'walkway-1', walkwayCode: 'A-01', neighbors: [] }];
             setup('user-me', emptyStatus);
-            programService.isIrrigationDay.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+            programService.isIrrigationDay.and.returnValue(of<OperationResult<IsIrrigationDayResult>>({ isSuccess: true, message: 'ok', data: { isIrrigationDay: true, isHoliday: false } }));
 
             component.ngOnInit();
 
             expect(component.emptyStateMessage('walkway-1')).toBe('Sin actividad todavía.');
         });
 
+        it('shows "Sin actividad todavía — hoy es festivo." when it IS an irrigation day AND today is a holiday', () => {
+            const emptyStatus: WalkwayIrrigationStatus[] = [{ walkwayId: 'walkway-1', walkwayCode: 'A-01', neighbors: [] }];
+            setup('user-me', emptyStatus);
+            programService.isIrrigationDay.and.returnValue(of<OperationResult<IsIrrigationDayResult>>({ isSuccess: true, message: 'ok', data: { isIrrigationDay: true, isHoliday: true } }));
+
+            component.ngOnInit();
+
+            expect(component.emptyStateMessage('walkway-1')).toBe('Sin actividad todavía — hoy es festivo.');
+        });
+
         it('fails soft to "Sin actividad todavía." when the isIrrigationDay check fails', () => {
             const emptyStatus: WalkwayIrrigationStatus[] = [{ walkwayId: 'walkway-1', walkwayCode: 'A-01', neighbors: [] }];
             setup('user-me', emptyStatus);
-            programService.isIrrigationDay.and.returnValue(of<OperationResult<boolean>>({ isSuccess: false, message: 'error' }));
+            programService.isIrrigationDay.and.returnValue(of<OperationResult<IsIrrigationDayResult>>({ isSuccess: false, message: 'error' }));
 
             component.ngOnInit();
 

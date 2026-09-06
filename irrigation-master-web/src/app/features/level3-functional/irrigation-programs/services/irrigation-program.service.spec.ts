@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
 import { CurrentSessionService } from '../../../../core/services/current-session';
-import { CreateIrrigationProgramRequest, IrrigationProgram, UpdateIrrigationProgramRequest } from '../../../../shared/models/irrigation-program.model';
+import { CreateIrrigationProgramRequest, IrrigationProgram, IsIrrigationDayResult, UpdateIrrigationProgramRequest } from '../../../../shared/models/irrigation-program.model';
 import { DetailResult, ListResult, OperationResult } from '../../../../shared/models/result.model';
 import { IrrigationProgramService } from './irrigation-program.service';
 
@@ -196,16 +196,16 @@ describe('IrrigationProgramService', () => {
 
     describe('isIrrigationDay()', () => {
         it('sends HydraulicSectorId without a Date param when none is given', () => {
-            let result: OperationResult<boolean> | undefined;
+            let result: OperationResult<IsIrrigationDayResult> | undefined;
 
             service.isIrrigationDay('sector-1').subscribe((r) => (result = r));
 
             const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`);
             expect(req.request.params.get('HydraulicSectorId')).toBe('sector-1');
             expect(req.request.params.has('Date')).toBe(false);
-            req.flush({ data: true, isSuccess: true, message: 'ok' });
+            req.flush({ data: { isIrrigationDay: true, isHoliday: false }, isSuccess: true, message: 'ok' });
 
-            expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: { isIrrigationDay: true, isHoliday: false } });
         });
 
         it('sends the Date param when given', () => {
@@ -213,11 +213,21 @@ describe('IrrigationProgramService', () => {
 
             const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`);
             expect(req.request.params.get('Date')).toBe('2026-08-25');
-            req.flush({ data: false, isSuccess: true, message: 'ok' });
+            req.flush({ data: { isIrrigationDay: false, isHoliday: false }, isSuccess: true, message: 'ok' });
+        });
+
+        it('reports isIrrigationDay and isHoliday independently -- a holiday never flips isIrrigationDay', () => {
+            let result: OperationResult<IsIrrigationDayResult> | undefined;
+
+            service.isIrrigationDay('sector-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/IsIrrigationDay`).flush({ data: { isIrrigationDay: true, isHoliday: true }, isSuccess: true, message: 'ok' });
+
+            expect(result?.data).toEqual({ isIrrigationDay: true, isHoliday: true });
         });
 
         it('on a 404 (sector inexistente), resolves with the backend message', () => {
-            let result: OperationResult<boolean> | undefined;
+            let result: OperationResult<IsIrrigationDayResult> | undefined;
 
             service.isIrrigationDay('missing-sector').subscribe((r) => (result = r));
 
@@ -227,7 +237,7 @@ describe('IrrigationProgramService', () => {
         });
 
         it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
-            let result: OperationResult<boolean> | undefined;
+            let result: OperationResult<IsIrrigationDayResult> | undefined;
 
             service.isIrrigationDay('sector-1').subscribe((r) => (result = r));
 

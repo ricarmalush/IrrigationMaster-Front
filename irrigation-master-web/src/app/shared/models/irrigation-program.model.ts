@@ -45,3 +45,12 @@ export interface UpdateIrrigationProgramRequest {
     seasonEndMonth?: number | null;
     seasonEndDay?: number | null;
 }
+
+// Respuesta de GetIsIrrigationDayQuery: dos datos independientes. isIrrigationDay se calcula SOLO
+// a partir del Programa (día de semana + temporada) -- nunca a partir de festivos. isHoliday es un
+// aviso puramente informativo aparte; un festivo NUNCA condiciona isIrrigationDay ni bloquea la
+// creación de turnos (el backend tampoco lo hace).
+export interface IsIrrigationDayResult {
+    isIrrigationDay: boolean;
+    isHoliday: boolean;
+}

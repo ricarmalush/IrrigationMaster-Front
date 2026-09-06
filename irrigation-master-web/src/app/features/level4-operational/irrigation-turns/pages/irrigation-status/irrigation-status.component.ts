@@ -5,7 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { forkJoin, of } from 'rxjs';
 import { CurrentSessionService } from '../../../../../core/services/current-session';
-import { IrrigationProgram } from '../../../../../shared/models/irrigation-program.model';
+import { IrrigationProgram, IsIrrigationDayResult } from '../../../../../shared/models/irrigation-program.model';
 import { NeighborIrrigationStatus, WalkwayIrrigationStatus } from '../../../../../shared/models/irrigation-turn.model';
 import { OperationResult } from '../../../../../shared/models/result.model';
 import { IrrigationProgramService } from '../../../../level3-functional/irrigation-programs/services/irrigation-program.service';
@@ -40,6 +40,10 @@ const MONTH_LABELS: Record<number, string> = {
 
 const NO_IRRIGATION_TODAY_MESSAGE = 'No hay riego programado hoy.';
 const NO_ACTIVITY_YET_MESSAGE = 'Sin actividad todavía.';
+// Festivo: aviso puramente informativo -- nunca sustituye a NO_IRRIGATION_TODAY_MESSAGE (eso
+// dependería negar isIrrigationDay, y un festivo ya no lo hace). Solo se añade cuando SÍ hay
+// Programa para hoy pero, además, la fecha es festiva.
+const NO_ACTIVITY_YET_HOLIDAY_MESSAGE = 'Sin actividad todavía — hoy es festivo.';
 
 // Duración fija de 2h desde "ahora + 1 min" -- espejo exacto de IrrigationStatusViewModel.RequestTurnAsync
 // en la App: sin selector de hora, se solicita siempre así.
@@ -216,7 +220,7 @@ export class IrrigationStatusComponent implements OnInit {
         const checks = Object.fromEntries(
             emptyWalkways.map((w) => {
                 const sectorId = sectorByWalkway[w.walkwayId];
-                return [w.walkwayId, sectorId ? this.irrigationProgramService.isIrrigationDay(sectorId) : of<OperationResult<boolean>>({ isSuccess: false, message: '' })];
+                return [w.walkwayId, sectorId ? this.irrigationProgramService.isIrrigationDay(sectorId) : of<OperationResult<IsIrrigationDayResult>>({ isSuccess: false, message: '' })];
             })
         );
 
@@ -225,7 +229,16 @@ export class IrrigationStatusComponent implements OnInit {
             for (const [walkwayId, result] of Object.entries(results)) {
                 // Fail-soft: si no se pudo resolver el sector o la consulta falla, se asume que
                 // puede haber actividad más tarde -- mismo criterio que la App.
-                messages[walkwayId] = result.isSuccess && result.data === false ? NO_IRRIGATION_TODAY_MESSAGE : NO_ACTIVITY_YET_MESSAGE;
+                // isHoliday es un aviso aparte: solo se añade cuando SÍ hay Programa para hoy
+                // (isIrrigationDay=true) -- nunca sustituye a NO_IRRIGATION_TODAY_MESSAGE, que
+                // depende únicamente de isIrrigationDay.
+                if (!result.isSuccess || result.data === undefined) {
+                    messages[walkwayId] = NO_ACTIVITY_YET_MESSAGE;
+                } else if (!result.data.isIrrigationDay) {
+                    messages[walkwayId] = NO_IRRIGATION_TODAY_MESSAGE;
+                } else {
+                    messages[walkwayId] = result.data.isHoliday ? NO_ACTIVITY_YET_HOLIDAY_MESSAGE : NO_ACTIVITY_YET_MESSAGE;
+                }
             }
             this.emptyStateMessages.set(messages);
         });
