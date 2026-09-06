@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { toDetailResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse } from '../../../../shared/models/api-response.model';
-import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurnsByWalkway, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
+import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -13,20 +13,6 @@ import { DetailResult, OperationResult } from '../../../../shared/models/result.
 export class IrrigationTurnService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/v1/IrrigationTurns`;
-
-    // GetPendingApprovalIrrigationTurnsQuery no pagina -- devuelve un array plano dentro de
-    // Response<T>, no ResponsePagination<T> -- por eso DetailResult<T[]> en vez de ListResult<T>.
-    // Ya viene agrupado por andador desde el backend (solo los que tienen algún turno pendiente),
-    // ordenado dentro de cada grupo por prioridad -- no hace falta reordenar en el cliente.
-    listPendingApproval(): Observable<DetailResult<PendingApprovalTurnsByWalkway[]>> {
-        return toDetailResult(this.http.get<ApiResponse<PendingApprovalTurnsByWalkway[]>>(`${this.apiUrl}/pending-approval`));
-    }
-
-    // Sin reject(): el backend no lo expone (ni comando, ni ruta -- ver Cancel() en el dominio,
-    // inalcanzable desde la API).
-    approve(id: string): Observable<OperationResult<string>> {
-        return toOperationResult(this.http.patch<ApiResponse<string>>(`${this.apiUrl}/${id}/approve`, null));
-    }
 
     // GetOrganizationIrrigationStatusQuery: agrupado por andador via RequesterId -> User.WalkwayId
     // en el propio backend, no via HydraulicSectorId. `date` en formato "yyyy-MM-dd"; si se omite,
@@ -53,10 +39,16 @@ export class IrrigationTurnService {
         return toOperationResult(this.http.post<ApiResponse<string>>(`${this.apiUrl}/Create`, request));
     }
 
-    // "Empezar mi turno" / "Terminar mi turno". Autorización del backend: propio andador (o
-    // MANAGE_ANY_TURN/SUPERADMIN) -- el Front solo ofrece el botón en la fila propia, coincide.
+    // "Empezar mi turno" / "Cancelar" / "Terminar mi turno". Autorización del backend: propio
+    // andador (o MANAGE_ANY_TURN/SUPERADMIN) -- el Front solo ofrece el botón en la fila propia,
+    // coincide. cancel() solo tiene efecto mientras el turno sigue en Requested (el backend lo
+    // rechaza explícitamente en cualquier otro estado) -- motivo siempre fijo, sin texto libre.
     start(id: string): Observable<OperationResult<boolean>> {
         return toOperationResult(this.http.patch<ApiResponse<boolean>>(`${this.apiUrl}/${id}/start`, null));
+    }
+
+    cancel(id: string): Observable<OperationResult<boolean>> {
+        return toOperationResult(this.http.patch<ApiResponse<boolean>>(`${this.apiUrl}/${id}/cancel`, null));
     }
 
     complete(id: string): Observable<OperationResult<boolean>> {

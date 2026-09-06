@@ -90,16 +90,20 @@ export class IrrigationStatusComponent implements OnInit {
         return !!this.myWalkwayId() && this.myWalkwayId() === walkway.walkwayId && !walkway.neighbors.some((n) => this.isMine(n));
     }
 
+    // Ya no exige aprobación previa -- confirmado con el Presidente, ese paso desaparece del
+    // ciclo por completo. Cualquier turno propio en Waiting (Requested) puede empezar de inmediato.
     canStart(neighbor: NeighborIrrigationStatus): boolean {
-        return this.isMine(neighbor) && neighbor.status === 'Waiting' && neighbor.isApproved;
+        return this.isMine(neighbor) && neighbor.status === 'Waiting';
+    }
+
+    // Misma condición base que canStart -- ambos botones conviven mientras el turno sigue en
+    // Requested ("Solicitar Turno" -> (Empezar | Cancelar) -> tras Empezar, solo Terminar).
+    canCancel(neighbor: NeighborIrrigationStatus): boolean {
+        return this.isMine(neighbor) && neighbor.status === 'Waiting';
     }
 
     canComplete(neighbor: NeighborIrrigationStatus): boolean {
         return this.isMine(neighbor) && neighbor.status === 'Watering';
-    }
-
-    showsWaitingApproval(neighbor: NeighborIrrigationStatus): boolean {
-        return this.isMine(neighbor) && neighbor.status === 'Waiting' && !neighbor.isApproved;
     }
 
     statusLabel(status: NeighborIrrigationStatus['status']): string {
@@ -172,6 +176,21 @@ export class IrrigationStatusComponent implements OnInit {
         this.turnService.complete(neighbor.turnId).subscribe((result) => {
             this.actingTurnId.set(null);
             this.notify(result, 'Turno terminado', 'No se pudo terminar el turno');
+            if (result.isSuccess) {
+                this.fetch();
+            }
+        });
+    }
+
+    cancelTurn(neighbor: NeighborIrrigationStatus): void {
+        if (!this.canCancel(neighbor)) {
+            return;
+        }
+
+        this.actingTurnId.set(neighbor.turnId);
+        this.turnService.cancel(neighbor.turnId).subscribe((result) => {
+            this.actingTurnId.set(null);
+            this.notify(result, 'Turno cancelado', 'No se pudo cancelar el turno');
             if (result.isSuccess) {
                 this.fetch();
             }

@@ -84,7 +84,7 @@ describe('AppMenu', () => {
         expect(broadcastItemVisible(component)).toBe(true);
     });
 
-    // A diferencia de "Aprobar Turnos"/"Usuarios"/"Sectores" (ADMIN_ROLES/STRUCTURE_MANAGEMENT_ROLES),
+    // A diferencia de "Usuarios"/"Sectores" (ADMIN_ROLES/STRUCTURE_MANAGEMENT_ROLES),
     // "Avisar a mi comunidad" SÍ incluye a Coordinador de Riego -- espejo de ShowCommunityBroadcast
     // en AdminMenuPage.xaml.cs de la App; el backend solo exige el permiso SEND_NOTIFICATIONS, ya
     // sembrado en ese rol.
@@ -139,20 +139,6 @@ describe('AppMenu', () => {
             }
         });
 
-        it('hides "Aprobar Turnos" for a VECINO but shows it for SUPERADMIN/PRESIDENTE/VICEPRESIDENTE', () => {
-            currentSession.establish(buildToken('VECINO'));
-            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(false);
-
-            currentSession.establish(buildToken('SUPERADMIN'));
-            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(true);
-
-            currentSession.establish(buildToken('PRESIDENTE'));
-            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(true);
-
-            currentSession.establish(buildToken('VICEPRESIDENTE'));
-            expect(itemVisible(component, 'Riego', 'Aprobar Turnos')).toBe(true);
-        });
-
         it('shows "Calendario de Riego" only for SUPERADMIN/COORDINADOR_RIEGO, not for PRESIDENTE', () => {
             currentSession.establish(buildToken('PRESIDENTE'));
             expect(itemVisible(component, 'Riego', 'Calendario de Riego')).toBe(false);
@@ -200,8 +186,8 @@ describe('AppMenu', () => {
             currentSession.establish(buildToken('VECINO'));
             expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
 
-            // A diferencia de "Aprobar Turnos"/"Avisar a mi comunidad" (ADMIN_ROLES), Facturación
-            // usa un conjunto de roles distinto que deliberadamente no incluye a VicePresidente.
+            // A diferencia de "Avisar a mi comunidad" (ADMIN_ROLES), Facturación usa un conjunto
+            // de roles distinto que deliberadamente no incluye a VicePresidente.
             currentSession.establish(buildToken('VICEPRESIDENTE'));
             expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
         });

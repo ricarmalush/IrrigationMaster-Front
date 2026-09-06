@@ -3,27 +3,11 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, PendingApprovalTurn, PendingApprovalTurnsByWalkway, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
+import { CreateIrrigationTurnRequest, MyWalkwayIrrigationStatus, WalkwayIrrigationStatus } from '../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../shared/models/result.model';
 import { IrrigationTurnService } from './irrigation-turn.service';
 
 const BASE_URL = `${environment.apiUrl}/v1/IrrigationTurns`;
-
-const turn: PendingApprovalTurn = {
-    id: 'turn-1',
-    requesterId: 'user-1',
-    requesterFullName: 'Ricardo Ruiz',
-    hydraulicSectorId: 'sector-1',
-    scheduledStart: '2026-08-25T08:00:00Z',
-    scheduledEnd: '2026-08-25T09:00:00Z',
-    houseNumber: 12
-};
-
-const pendingGroup: PendingApprovalTurnsByWalkway = {
-    walkwayId: 'walkway-1',
-    walkwayCode: 'A-01',
-    turns: [turn]
-};
 
 const walkwayStatus: WalkwayIrrigationStatus = {
     walkwayId: 'walkway-1',
@@ -36,7 +20,7 @@ const walkwayStatus: WalkwayIrrigationStatus = {
             status: 'Waiting',
             scheduledStart: '2026-08-25T08:00:00Z',
             scheduledEnd: '2026-08-25T09:00:00Z',
-            isApproved: false
+            houseNumber: 12
         }
     ]
 };
@@ -55,75 +39,6 @@ describe('IrrigationTurnService', () => {
 
     it('should be created', () => {
         expect(service).toBeTruthy();
-    });
-
-    describe('listPendingApproval()', () => {
-        it('maps a successful response, already grouped by walkway', () => {
-            let result: DetailResult<PendingApprovalTurnsByWalkway[]> | undefined;
-
-            service.listPendingApproval().subscribe((r) => (result = r));
-
-            const req = httpMock.expectOne(`${BASE_URL}/pending-approval`);
-            expect(req.request.method).toBe('GET');
-            req.flush({ data: [pendingGroup], isSuccess: true, message: 'ok' });
-
-            expect(result).toEqual({ isSuccess: true, message: 'ok', data: [pendingGroup] });
-        });
-
-        it('resolves an empty list as success with no items', () => {
-            let result: DetailResult<PendingApprovalTurnsByWalkway[]> | undefined;
-
-            service.listPendingApproval().subscribe((r) => (result = r));
-
-            httpMock.expectOne(`${BASE_URL}/pending-approval`).flush({ data: [], isSuccess: true, message: 'ok' });
-
-            expect(result).toEqual({ isSuccess: true, message: 'ok', data: [] });
-        });
-
-        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
-            let result: DetailResult<PendingApprovalTurnsByWalkway[]> | undefined;
-
-            service.listPendingApproval().subscribe((r) => (result = r));
-
-            httpMock.expectOne(`${BASE_URL}/pending-approval`).error(new ProgressEvent('error'));
-
-            expect(result?.isSuccess).toBe(false);
-        });
-    });
-
-    describe('approve()', () => {
-        it('PATCHes to {id}/approve with a null body', () => {
-            let result: OperationResult<string> | undefined;
-
-            service.approve('turn-1').subscribe((r) => (result = r));
-
-            const req = httpMock.expectOne(`${BASE_URL}/turn-1/approve`);
-            expect(req.request.method).toBe('PATCH');
-            expect(req.request.body).toBeNull();
-            req.flush({ data: 'turn-1', isSuccess: true, message: 'Operación completada exitosamente.' });
-
-            expect(result).toEqual({ isSuccess: true, message: 'Operación completada exitosamente.', data: 'turn-1' });
-        });
-
-        it('on a 400 with a real backend message (sin permiso), resolves with it instead of throwing', () => {
-            let result: OperationResult<string> | undefined;
-
-            service.approve('turn-1').subscribe((r) => (result = r));
-
-            httpMock.expectOne(`${BASE_URL}/turn-1/approve`).flush({ isSuccess: false, message: 'No tienes permiso para realizar esta acción.' }, { status: 400, statusText: 'Bad Request' });
-
-            expect(result).toEqual({ isSuccess: false, message: 'No tienes permiso para realizar esta acción.' });
-        });
-
-        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
-            let result: OperationResult<string> | undefined;
-
-            service.approve('turn-1').subscribe((r) => (result = r));
-
-            httpMock.expectOne(`${BASE_URL}/turn-1/approve`).error(new ProgressEvent('error'));
-
-            expect(result?.isSuccess).toBe(false);
-        });
     });
 
     describe('getOrganizationStatus()', () => {
@@ -292,6 +207,41 @@ describe('IrrigationTurnService', () => {
             service.start('turn-1').subscribe((r) => (result = r));
 
             httpMock.expectOne(`${BASE_URL}/turn-1/start`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('cancel()', () => {
+        it('PATCHes to {id}/cancel with a null body', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.cancel('turn-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/turn-1/cancel`);
+            expect(req.request.method).toBe('PATCH');
+            expect(req.request.body).toBeNull();
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
+        });
+
+        it('on a 400 with a real backend message (turno ya empezado), resolves with it instead of throwing', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.cancel('turn-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/turn-1/cancel`).flush({ isSuccess: false, message: 'Solo se puede cancelar un turno que todavía no ha empezado a regar.' }, { status: 400, statusText: 'Bad Request' });
+
+            expect(result).toEqual({ isSuccess: false, message: 'Solo se puede cancelar un turno que todavía no ha empezado a regar.' });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.cancel('turn-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/turn-1/cancel`).error(new ProgressEvent('error'));
 
             expect(result?.isSuccess).toBe(false);
         });

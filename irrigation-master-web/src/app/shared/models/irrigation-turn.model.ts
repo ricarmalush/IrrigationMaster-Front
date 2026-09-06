@@ -1,31 +1,10 @@
-// Espejo de PendingApprovalIrrigationTurnDto (GET IrrigationTurns/pending-approval): solo turnos en
-// estado "Requested" de la organización del que llama, ya con el nombre del solicitante resuelto,
-// pero el sector solo como id (se resuelve en el cliente, igual que en Programs). houseNumber
-// puede venir null si el solicitante todavía no tiene número de casa registrado.
-export interface PendingApprovalTurn {
-    id: string;
-    requesterId: string;
-    requesterFullName: string;
-    hydraulicSectorId: string;
-    scheduledStart: string;
-    scheduledEnd: string;
-    houseNumber: number | null;
-}
-
-// Espejo de PendingApprovalTurnsByWalkwayDto: los turnos pendientes ya vienen agrupados por
-// andador desde el backend (solo los andadores con al menos uno) y ordenados dentro de cada grupo
-// por prioridad -- HouseNumber descendente, ThenBy hora de solicitud.
-export interface PendingApprovalTurnsByWalkway {
-    walkwayId: string;
-    walkwayCode: string;
-    turns: PendingApprovalTurn[];
-}
-
 export type NeighborTurnStatus = 'Watering' | 'Waiting' | 'Completed';
 
-// Espejo de NeighborIrrigationStatusDto (GET IrrigationTurns/status): Status ya colapsa
-// Requested/Pending en "Waiting" -- IsApproved es lo único que distingue "esperando aprobación"
-// de "aprobado, puede empezar" dentro de ese mismo estado "Waiting".
+// Espejo de NeighborIrrigationStatusDto (GET IrrigationTurns/status, /my-walkway-status): "Waiting"
+// es accionable de inmediato (Empezar/Cancelar) -- ya no existe un paso de aprobación intermedio.
+// houseNumber es UNICAMENTE informativo (orden visual descendente de la lista de espera del día)
+// -- nunca condiciona qué botones se muestran. Puede venir null si el vecino todavía no tiene
+// número de casa registrado.
 export interface NeighborIrrigationStatus {
     userId: string;
     turnId: string;
@@ -33,7 +12,7 @@ export interface NeighborIrrigationStatus {
     status: NeighborTurnStatus;
     scheduledStart: string;
     scheduledEnd: string;
-    isApproved: boolean;
+    houseNumber: number | null;
 }
 
 // Espejo de WalkwayIrrigationStatusDto: el agrupado por andador viene ya resuelto del backend
@@ -53,10 +32,10 @@ export interface CreateIrrigationTurnRequest {
     priority?: number;
 }
 
-// Espejo de WalkwayRequestedTurnDto (GET IrrigationTurns/my-walkway-status): a diferencia de
-// NeighborIrrigationStatus, Status aquí NO colapsa Requested/Pending -- expone el estado real del
-// dominio tal cual. La vista "Mi Riego" no lo muestra (mismo criterio que la App). Ya viene
-// ordenada por prioridad desde el backend (HouseNumber descendente, ThenBy hora de solicitud).
+// Espejo de WalkwayRequestedTurnDto (GET IrrigationTurns/my-walkway-status): siempre "Requested"
+// hasta el día siguiente, cuando pasa a formar parte de liveToday. houseNumber es puramente
+// informativo (orden visual descendente), nunca bloqueante. Ya viene ordenada por prioridad desde
+// el backend (HouseNumber descendente, ThenBy hora de solicitud).
 export interface WalkwayRequestedTurn {
     turnId: string;
     userId: string;
@@ -69,7 +48,9 @@ export interface WalkwayRequestedTurn {
 
 // Espejo de MyWalkwayIrrigationStatusDto: acotado SIEMPRE al andador del propio llamador (nunca un
 // parámetro). walkwayId/walkwayCode son null cuando el llamador no tiene andador asignado (p. ej.
-// un Presidente) -- estado válido, no un error: ambas listas vienen vacías en ese caso.
+// un Presidente) -- estado válido, no un error: ambas listas vienen vacías en ese caso. liveToday
+// incluye Requested/InProgress/Completed de hoy (propio y de otros vecinos del mismo andador), ya
+// ordenado por HouseNumber descendente (informativo).
 export interface MyWalkwayIrrigationStatus {
     walkwayId: string | null;
     walkwayCode: string | null;

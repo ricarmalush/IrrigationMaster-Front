@@ -33,7 +33,7 @@ function liveTurn(overrides: Partial<NeighborIrrigationStatus> = {}): NeighborIr
         status: 'Watering',
         scheduledStart: '2026-08-25T08:00:00Z',
         scheduledEnd: '2026-08-25T10:00:00Z',
-        isApproved: true,
+        houseNumber: null,
         ...overrides
     };
 }
@@ -57,7 +57,7 @@ describe('MyIrrigationComponent', () => {
     let messageService: jasmine.SpyObj<MessageService>;
 
     function setup(myUserId: string | null = 'user-me'): void {
-        turnService = jasmine.createSpyObj('IrrigationTurnService', ['getMyWalkwayStatus', 'request']);
+        turnService = jasmine.createSpyObj('IrrigationTurnService', ['getMyWalkwayStatus', 'request', 'start', 'cancel', 'complete']);
 
         walkwayService = jasmine.createSpyObj('WalkwayService', ['getById']);
         walkwayService.getById.and.returnValue(of<DetailResult<Walkway>>({ isSuccess: true, message: 'ok', data: walkwayA }));
@@ -229,6 +229,92 @@ describe('MyIrrigationComponent', () => {
 
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'La fecha de inicio debe ser futura.' }));
             expect(turnService.getMyWalkwayStatus).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // ─── "Empezar/Cancelar/Terminar mi turno": nuevo en esta pantalla -- antes solo existían en la
+    // vista hermana "Estado de Riego", a la que el Vecino no tiene acceso. Espejo exacto de
+    // IrrigationStatusComponent.canStart/canCancel/canComplete/startTurn/cancelTurn/completeTurn ───
+
+    describe('canStart() / canCancel() / canComplete()', () => {
+        beforeEach(() => setup('user-me'));
+
+        it('canStart is true only for my own turn while Waiting -- no approval step anymore', () => {
+            expect(component.canStart(liveTurn({ userId: 'user-me', status: 'Waiting' }))).toBe(true);
+            expect(component.canStart(liveTurn({ userId: 'other-user', status: 'Waiting' }))).toBe(false);
+        });
+
+        it('canCancel is true only for my own turn while Waiting -- same condition as canStart', () => {
+            expect(component.canCancel(liveTurn({ userId: 'user-me', status: 'Waiting' }))).toBe(true);
+            expect(component.canCancel(liveTurn({ userId: 'user-me', status: 'Watering' }))).toBe(false);
+            expect(component.canCancel(liveTurn({ userId: 'other-user', status: 'Waiting' }))).toBe(false);
+        });
+
+        it('canComplete is true only for my own turn while Watering', () => {
+            expect(component.canComplete(liveTurn({ userId: 'user-me', status: 'Watering' }))).toBe(true);
+            expect(component.canComplete(liveTurn({ userId: 'user-me', status: 'Waiting' }))).toBe(false);
+            expect(component.canComplete(liveTurn({ userId: 'other-user', status: 'Watering' }))).toBe(false);
+        });
+    });
+
+    describe('startTurn() / cancelTurn() / completeTurn()', () => {
+        beforeEach(() => {
+            setup('user-me');
+            turnService.getMyWalkwayStatus.and.returnValue(of<DetailResult<MyWalkwayIrrigationStatus>>({ isSuccess: true, message: 'ok', data: status() }));
+            component.ngOnInit();
+        });
+
+        it('startTurn() does nothing when canStart is false', () => {
+            component.startTurn(liveTurn({ userId: 'other-user' }));
+            expect(turnService.start).not.toHaveBeenCalled();
+        });
+
+        it('startTurn() calls the service and reloads on success', () => {
+            turnService.start.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+
+            component.startTurn(liveTurn({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting' }));
+
+            expect(turnService.start).toHaveBeenCalledWith('turn-me');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
+            expect(turnService.getMyWalkwayStatus).toHaveBeenCalledTimes(2);
+        });
+
+        it('cancelTurn() does nothing when canCancel is false', () => {
+            component.cancelTurn(liveTurn({ userId: 'other-user', status: 'Waiting' }));
+            expect(turnService.cancel).not.toHaveBeenCalled();
+        });
+
+        it('cancelTurn() calls the service and reloads on success', () => {
+            turnService.cancel.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+
+            component.cancelTurn(liveTurn({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting' }));
+
+            expect(turnService.cancel).toHaveBeenCalledWith('turn-me');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
+            expect(turnService.getMyWalkwayStatus).toHaveBeenCalledTimes(2);
+        });
+
+        it('cancelTurn() shows an error toast and does not reload on failure', () => {
+            turnService.cancel.and.returnValue(of<OperationResult<boolean>>({ isSuccess: false, message: 'Solo se puede cancelar un turno que todavía no ha empezado a regar.' }));
+
+            component.cancelTurn(liveTurn({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting' }));
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'Solo se puede cancelar un turno que todavía no ha empezado a regar.' }));
+            expect(turnService.getMyWalkwayStatus).toHaveBeenCalledTimes(1);
+        });
+
+        it('completeTurn() does nothing when canComplete is false', () => {
+            component.completeTurn(liveTurn({ userId: 'other-user', status: 'Watering' }));
+            expect(turnService.complete).not.toHaveBeenCalled();
+        });
+
+        it('completeTurn() calls the service and reloads on success', () => {
+            turnService.complete.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+
+            component.completeTurn(liveTurn({ userId: 'user-me', turnId: 'turn-me', status: 'Watering' }));
+
+            expect(turnService.complete).toHaveBeenCalledWith('turn-me');
+            expect(turnService.getMyWalkwayStatus).toHaveBeenCalledTimes(2);
         });
     });
 });

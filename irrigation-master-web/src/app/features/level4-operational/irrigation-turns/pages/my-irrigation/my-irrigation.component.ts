@@ -15,11 +15,12 @@ import { IrrigationTurnService } from '../../services/irrigation-turn.service';
 const REQUEST_TURN_DELAY_MS = 60_000;
 const REQUEST_TURN_DURATION_HOURS = 2;
 
-// Antes puramente de solo lectura (solicitar/empezar/terminar turno vivían solo en la vista
-// hermana "Estado de Riego") -- ahora "Solicitar mi turno" también vive aquí: para Vecino, esta
-// pantalla ES su "Estado de Riego" (ver app.menu.ts), así que necesita la misma acción que tenía
-// allí. Empezar/terminar turno siguen sin estar aquí -- esos actúan sobre turnos ya en curso, que
-// esta vista no expone con el detalle necesario (turnId sí, pero sin isApproved).
+// Antes puramente de solo lectura (salvo "Solicitar mi turno") -- ahora "Mi Riego" también ofrece
+// Empezar/Cancelar/Terminar sobre liveToday: para Vecino, esta pantalla ES su "Estado de Riego"
+// (ver app.menu.ts) y es la ÚNICA a la que tiene acceso, así que necesita las mismas acciones que
+// ya existían en la vista hermana "Estado de Riego" -- de lo contrario un Vecino no tendría forma
+// de empezar ni terminar su propio turno. El ciclo ya no tiene aprobación intermedia: cualquier
+// turno propio en Waiting (Requested) admite Empezar o Cancelar; tras Empezar, solo Terminar.
 @Component({
     selector: 'app-my-irrigation',
     standalone: true,
@@ -44,9 +45,14 @@ export class MyIrrigationComponent implements OnInit {
     readonly liveToday = signal<NeighborIrrigationStatus[]>([]);
     readonly hydraulicSectorId = signal<string | null>(null);
     readonly requestingTurn = signal(false);
+    readonly actingTurnId = signal<string | null>(null);
 
     ngOnInit(): void {
         this.fetch();
+    }
+
+    isMine(neighbor: NeighborIrrigationStatus): boolean {
+        return neighbor.userId === this.myUserId;
     }
 
     // Mismo vocabulario que IrrigationStatusComponent.statusLabel (vista hermana "Estado de Riego").
@@ -66,6 +72,20 @@ export class MyIrrigationComponent implements OnInit {
     // al propio andador del llamador (server-side), así que no hace falta comparar walkwayId.
     canRequestTurn(): boolean {
         return !!this.hydraulicSectorId() && !this.liveToday().some((n) => n.userId === this.myUserId);
+    }
+
+    // Ya no exige aprobación previa -- confirmado con el Presidente, ese paso desaparece del ciclo
+    // por completo. Espejo exacto de IrrigationStatusComponent.canStart/canCancel/canComplete.
+    canStart(neighbor: NeighborIrrigationStatus): boolean {
+        return this.isMine(neighbor) && neighbor.status === 'Waiting';
+    }
+
+    canCancel(neighbor: NeighborIrrigationStatus): boolean {
+        return this.isMine(neighbor) && neighbor.status === 'Waiting';
+    }
+
+    canComplete(neighbor: NeighborIrrigationStatus): boolean {
+        return this.isMine(neighbor) && neighbor.status === 'Watering';
     }
 
     requestTurn(): void {
@@ -92,6 +112,51 @@ export class MyIrrigationComponent implements OnInit {
                     this.fetch();
                 }
             });
+    }
+
+    startTurn(neighbor: NeighborIrrigationStatus): void {
+        if (!this.canStart(neighbor)) {
+            return;
+        }
+
+        this.actingTurnId.set(neighbor.turnId);
+        this.turnService.start(neighbor.turnId).subscribe((result) => {
+            this.actingTurnId.set(null);
+            this.notify(result, 'Turno iniciado', 'No se pudo iniciar el turno');
+            if (result.isSuccess) {
+                this.fetch();
+            }
+        });
+    }
+
+    cancelTurn(neighbor: NeighborIrrigationStatus): void {
+        if (!this.canCancel(neighbor)) {
+            return;
+        }
+
+        this.actingTurnId.set(neighbor.turnId);
+        this.turnService.cancel(neighbor.turnId).subscribe((result) => {
+            this.actingTurnId.set(null);
+            this.notify(result, 'Turno cancelado', 'No se pudo cancelar el turno');
+            if (result.isSuccess) {
+                this.fetch();
+            }
+        });
+    }
+
+    completeTurn(neighbor: NeighborIrrigationStatus): void {
+        if (!this.canComplete(neighbor)) {
+            return;
+        }
+
+        this.actingTurnId.set(neighbor.turnId);
+        this.turnService.complete(neighbor.turnId).subscribe((result) => {
+            this.actingTurnId.set(null);
+            this.notify(result, 'Turno terminado', 'No se pudo terminar el turno');
+            if (result.isSuccess) {
+                this.fetch();
+            }
+        });
     }
 
     private notify(result: OperationResult<boolean | string>, successSummary: string, failureSummary: string): void {

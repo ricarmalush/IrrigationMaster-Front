@@ -56,7 +56,7 @@ function neighbor(overrides: Partial<NeighborIrrigationStatus>): NeighborIrrigat
         status: 'Waiting',
         scheduledStart: '2026-08-25T08:00:00Z',
         scheduledEnd: '2026-08-25T10:00:00Z',
-        isApproved: false,
+        houseNumber: null,
         ...overrides
     };
 }
@@ -72,7 +72,7 @@ describe('IrrigationStatusComponent', () => {
     let messageService: jasmine.SpyObj<MessageService>;
 
     function setup(myUserId: string | null, statusData: WalkwayIrrigationStatus[] = []): void {
-        turnService = jasmine.createSpyObj('IrrigationTurnService', ['getOrganizationStatus', 'request', 'start', 'complete']);
+        turnService = jasmine.createSpyObj('IrrigationTurnService', ['getOrganizationStatus', 'request', 'start', 'cancel', 'complete']);
         turnService.getOrganizationStatus.and.returnValue(of<DetailResult<WalkwayIrrigationStatus[]>>({ isSuccess: true, message: 'ok', data: statusData }));
 
         programService = jasmine.createSpyObj('IrrigationProgramService', ['list', 'isIrrigationDay']);
@@ -148,25 +148,24 @@ describe('IrrigationStatusComponent', () => {
         });
     });
 
-    describe('canStart() / canComplete() / showsWaitingApproval()', () => {
+    describe('canStart() / canCancel() / canComplete()', () => {
         beforeEach(() => setup('user-me'));
 
-        it('canStart is true only for my own turn, Waiting and approved', () => {
-            expect(component.canStart(neighbor({ userId: 'user-me', status: 'Waiting', isApproved: true }))).toBe(true);
-            expect(component.canStart(neighbor({ userId: 'user-me', status: 'Waiting', isApproved: false }))).toBe(false);
-            expect(component.canStart(neighbor({ userId: 'other-user', status: 'Waiting', isApproved: true }))).toBe(false);
+        it('canStart is true only for my own turn while Waiting -- no approval step anymore', () => {
+            expect(component.canStart(neighbor({ userId: 'user-me', status: 'Waiting' }))).toBe(true);
+            expect(component.canStart(neighbor({ userId: 'other-user', status: 'Waiting' }))).toBe(false);
+        });
+
+        it('canCancel is true only for my own turn while Waiting -- same condition as canStart', () => {
+            expect(component.canCancel(neighbor({ userId: 'user-me', status: 'Waiting' }))).toBe(true);
+            expect(component.canCancel(neighbor({ userId: 'user-me', status: 'Watering' }))).toBe(false);
+            expect(component.canCancel(neighbor({ userId: 'other-user', status: 'Waiting' }))).toBe(false);
         });
 
         it('canComplete is true only for my own turn while Watering', () => {
             expect(component.canComplete(neighbor({ userId: 'user-me', status: 'Watering' }))).toBe(true);
-            expect(component.canComplete(neighbor({ userId: 'user-me', status: 'Waiting', isApproved: true }))).toBe(false);
+            expect(component.canComplete(neighbor({ userId: 'user-me', status: 'Waiting' }))).toBe(false);
             expect(component.canComplete(neighbor({ userId: 'other-user', status: 'Watering' }))).toBe(false);
-        });
-
-        it('showsWaitingApproval is true only for my own turn, Waiting and not yet approved', () => {
-            expect(component.showsWaitingApproval(neighbor({ userId: 'user-me', status: 'Waiting', isApproved: false }))).toBe(true);
-            expect(component.showsWaitingApproval(neighbor({ userId: 'user-me', status: 'Waiting', isApproved: true }))).toBe(false);
-            expect(component.showsWaitingApproval(neighbor({ userId: 'other-user', status: 'Waiting', isApproved: false }))).toBe(false);
         });
     });
 
@@ -292,7 +291,7 @@ describe('IrrigationStatusComponent', () => {
         });
     });
 
-    describe('startTurn() / completeTurn()', () => {
+    describe('startTurn() / cancelTurn() / completeTurn()', () => {
         beforeEach(() => {
             setup('user-me');
             component.ngOnInit();
@@ -306,11 +305,35 @@ describe('IrrigationStatusComponent', () => {
         it('startTurn() calls the service and reloads on success', () => {
             turnService.start.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
 
-            component.startTurn(neighbor({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting', isApproved: true }));
+            component.startTurn(neighbor({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting' }));
 
             expect(turnService.start).toHaveBeenCalledWith('turn-me');
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
             expect(turnService.getOrganizationStatus).toHaveBeenCalledTimes(2);
+        });
+
+        it('cancelTurn() does nothing when canCancel is false', () => {
+            component.cancelTurn(neighbor({ userId: 'other-user', status: 'Waiting' }));
+            expect(turnService.cancel).not.toHaveBeenCalled();
+        });
+
+        it('cancelTurn() calls the service and reloads on success', () => {
+            turnService.cancel.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+
+            component.cancelTurn(neighbor({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting' }));
+
+            expect(turnService.cancel).toHaveBeenCalledWith('turn-me');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
+            expect(turnService.getOrganizationStatus).toHaveBeenCalledTimes(2);
+        });
+
+        it('cancelTurn() shows an error toast and does not reload on failure', () => {
+            turnService.cancel.and.returnValue(of<OperationResult<boolean>>({ isSuccess: false, message: 'Solo se puede cancelar un turno que todavía no ha empezado a regar.' }));
+
+            component.cancelTurn(neighbor({ userId: 'user-me', turnId: 'turn-me', status: 'Waiting' }));
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'Solo se puede cancelar un turno que todavía no ha empezado a regar.' }));
+            expect(turnService.getOrganizationStatus).toHaveBeenCalledTimes(1);
         });
 
         it('completeTurn() does nothing when canComplete is false', () => {

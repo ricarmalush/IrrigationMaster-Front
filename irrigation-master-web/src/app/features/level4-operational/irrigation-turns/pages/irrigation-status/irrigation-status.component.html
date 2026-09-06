@@ -41,13 +41,13 @@
                                 <div>
                                     <span>{{ neighbor.fullName }} -- {{ statusLabel(neighbor.status) }}</span>
                                     <span class="text-muted-color text-sm block">{{ neighbor.scheduledStart | date: 'dd/MM/yyyy HH:mm' }} - {{ neighbor.scheduledEnd | date: 'HH:mm' }}</span>
-                                    @if (showsWaitingApproval(neighbor)) {
-                                        <span class="text-muted-color text-sm italic block">Esperando aprobación</span>
-                                    }
                                 </div>
                                 <div class="flex gap-2">
                                     @if (canStart(neighbor)) {
                                         <button pButton type="button" label="Empezar mi turno" [loading]="actingTurnId() === neighbor.turnId" (click)="startTurn(neighbor)"></button>
+                                    }
+                                    @if (canCancel(neighbor)) {
+                                        <button pButton type="button" label="Cancelar" severity="danger" [outlined]="true" [loading]="actingTurnId() === neighbor.turnId" (click)="cancelTurn(neighbor)"></button>
                                     }
                                     @if (canComplete(neighbor)) {
                                         <button pButton type="button" label="Terminar mi turno" severity="secondary" [loading]="actingTurnId() === neighbor.turnId" (click)="completeTurn(neighbor)"></button>
