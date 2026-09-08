@@ -88,7 +88,8 @@ describe('IrrigationTurnService', () => {
             walkwayId: 'walkway-1',
             walkwayCode: 'A-01',
             requestsTomorrow: [{ turnId: 'turn-1', userId: 'user-1', fullName: 'Ricardo Ruiz', status: 'Requested', scheduledStart: '2026-08-26T08:00:00Z', scheduledEnd: '2026-08-26T10:00:00Z', houseNumber: 12 }],
-            liveToday: [walkwayStatus.neighbors[0]]
+            liveToday: [walkwayStatus.neighbors[0]],
+            todaySchedule: [{ programId: 'program-1', name: 'Riego Matutino', startTime: '08:00:00', endTime: '09:00:00' }]
         };
 
         it('GETs /my-walkway-status without a Date param when none is given', () => {
@@ -115,7 +116,7 @@ describe('IrrigationTurnService', () => {
         // null y ambas listas vacías -- no un error.
         it('resolves walkwayId:null as success (sin andador asignado)', () => {
             let result: DetailResult<MyWalkwayIrrigationStatus> | undefined;
-            const noWalkway: MyWalkwayIrrigationStatus = { walkwayId: null, walkwayCode: null, requestsTomorrow: [], liveToday: [] };
+            const noWalkway: MyWalkwayIrrigationStatus = { walkwayId: null, walkwayCode: null, requestsTomorrow: [], liveToday: [], todaySchedule: [] };
 
             service.getMyWalkwayStatus().subscribe((r) => (result = r));
 

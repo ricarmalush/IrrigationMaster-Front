@@ -46,14 +46,26 @@ export interface WalkwayRequestedTurn {
     houseNumber: number | null;
 }
 
+// Espejo de TodayIrrigationScheduleDto: un tramo horario de riego que aplica HOY para el sector del
+// andador consultado (ver IrrigationProgramExtensions.AppliesOn en el backend). startTime/endTime
+// viajan como "HH:mm:ss" -- mismo formato nativo de TimeSpan que IrrigationProgram.startTime.
+export interface TodayIrrigationSchedule {
+    programId: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+}
+
 // Espejo de MyWalkwayIrrigationStatusDto: acotado SIEMPRE al andador del propio llamador (nunca un
 // parámetro). walkwayId/walkwayCode son null cuando el llamador no tiene andador asignado (p. ej.
-// un Presidente) -- estado válido, no un error: ambas listas vienen vacías en ese caso. liveToday
+// un Presidente) -- estado válido, no un error: las tres listas vienen vacías en ese caso. liveToday
 // incluye Requested/InProgress/Completed de hoy (propio y de otros vecinos del mismo andador), ya
-// ordenado por HouseNumber descendente (informativo).
+// ordenado por HouseNumber descendente (informativo). todaySchedule son los tramos horarios de los
+// Programa activos del sector que cubren hoy (puede haber 0, 1 o varios).
 export interface MyWalkwayIrrigationStatus {
     walkwayId: string | null;
     walkwayCode: string | null;
     requestsTomorrow: WalkwayRequestedTurn[];
     liveToday: NeighborIrrigationStatus[];
+    todaySchedule: TodayIrrigationSchedule[];
 }

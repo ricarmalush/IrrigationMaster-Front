@@ -4,7 +4,7 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { CurrentSessionService } from '../../../../../core/services/current-session';
-import { NeighborIrrigationStatus, NeighborTurnStatus, WalkwayRequestedTurn } from '../../../../../shared/models/irrigation-turn.model';
+import { NeighborIrrigationStatus, NeighborTurnStatus, TodayIrrigationSchedule, WalkwayRequestedTurn } from '../../../../../shared/models/irrigation-turn.model';
 import { OperationResult } from '../../../../../shared/models/result.model';
 import { WalkwayService } from '../../../../level2-structure/walkways/services/walkway.service';
 import { IrrigationTurnService } from '../../services/irrigation-turn.service';
@@ -43,6 +43,7 @@ export class MyIrrigationComponent implements OnInit {
     readonly walkwayCode = signal<string | null>(null);
     readonly requestsTomorrow = signal<WalkwayRequestedTurn[]>([]);
     readonly liveToday = signal<NeighborIrrigationStatus[]>([]);
+    readonly todaySchedule = signal<TodayIrrigationSchedule[]>([]);
     readonly hydraulicSectorId = signal<string | null>(null);
     readonly requestingTurn = signal(false);
     readonly actingTurnId = signal<string | null>(null);
@@ -53,6 +54,20 @@ export class MyIrrigationComponent implements OnInit {
 
     isMine(neighbor: NeighborIrrigationStatus): boolean {
         return neighbor.userId === this.myUserId;
+    }
+
+    // Formatea un TimeSpan "HH:mm:ss" del backend a "HH:mm" para mostrar -- mismo formato ya usado
+    // por IrrigationProgram.startTime en el resto del módulo.
+    formatHour(time: string): string {
+        return time.slice(0, 5);
+    }
+
+    // Etiqueta de un tramo horario de hoy -- incluye el nombre del Programa SOLO cuando hay más de
+    // uno hoy en el sector (decisión explícita: evita confusión en sectores con turno mañana/noche,
+    // pero no añade ruido cuando solo hay un Programa).
+    scheduleLabel(schedule: TodayIrrigationSchedule): string {
+        const range = `${this.formatHour(schedule.startTime)}-${this.formatHour(schedule.endTime)}`;
+        return this.todaySchedule().length > 1 ? `${schedule.name}: ${range}` : range;
     }
 
     // Mismo vocabulario que IrrigationStatusComponent.statusLabel (vista hermana "Estado de Riego").
@@ -178,6 +193,7 @@ export class MyIrrigationComponent implements OnInit {
             this.walkwayCode.set(data?.walkwayCode ?? null);
             this.requestsTomorrow.set(data?.requestsTomorrow ?? []);
             this.liveToday.set(data?.liveToday ?? []);
+            this.todaySchedule.set(data?.todaySchedule ?? []);
             this.errorMessage.set(result.isSuccess ? null : result.message);
 
             if (data?.walkwayId) {

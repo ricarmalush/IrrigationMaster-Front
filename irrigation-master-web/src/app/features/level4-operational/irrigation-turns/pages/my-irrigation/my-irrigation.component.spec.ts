@@ -3,7 +3,7 @@ import { MessageService } from 'primeng/api';
 import { of } from 'rxjs';
 
 import { CurrentSessionService } from '../../../../../core/services/current-session';
-import { MyWalkwayIrrigationStatus, NeighborIrrigationStatus, WalkwayRequestedTurn } from '../../../../../shared/models/irrigation-turn.model';
+import { MyWalkwayIrrigationStatus, NeighborIrrigationStatus, TodayIrrigationSchedule, WalkwayRequestedTurn } from '../../../../../shared/models/irrigation-turn.model';
 import { DetailResult, OperationResult } from '../../../../../shared/models/result.model';
 import { Walkway } from '../../../../../shared/models/walkway.model';
 import { WalkwayService } from '../../../../level2-structure/walkways/services/walkway.service';
@@ -38,12 +38,23 @@ function liveTurn(overrides: Partial<NeighborIrrigationStatus> = {}): NeighborIr
     };
 }
 
+function schedule(overrides: Partial<TodayIrrigationSchedule> = {}): TodayIrrigationSchedule {
+    return {
+        programId: 'program-1',
+        name: 'Riego Matutino',
+        startTime: '08:00:00',
+        endTime: '09:00:00',
+        ...overrides
+    };
+}
+
 function status(overrides: Partial<MyWalkwayIrrigationStatus> = {}): MyWalkwayIrrigationStatus {
     return {
         walkwayId: 'walkway-1',
         walkwayCode: 'A-01',
         requestsTomorrow: [],
         liveToday: [],
+        todaySchedule: [],
         ...overrides
     };
 }
@@ -101,6 +112,16 @@ describe('MyIrrigationComponent', () => {
             expect(component.requestsTomorrow()).toEqual(requests);
             expect(component.liveToday()).toEqual(live);
             expect(component.errorMessage()).toBeNull();
+        });
+
+        it('exposes todaySchedule on success', () => {
+            setup();
+            const schedules = [schedule()];
+            turnService.getMyWalkwayStatus.and.returnValue(of<DetailResult<MyWalkwayIrrigationStatus>>({ isSuccess: true, message: 'ok', data: status({ todaySchedule: schedules }) }));
+
+            component.ngOnInit();
+
+            expect(component.todaySchedule()).toEqual(schedules);
         });
 
         // Estado válido de esta vista informativa (p. ej. un Presidente sin andador propio) --
@@ -315,6 +336,42 @@ describe('MyIrrigationComponent', () => {
 
             expect(turnService.complete).toHaveBeenCalledWith('turn-me');
             expect(turnService.getMyWalkwayStatus).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('scheduleLabel()', () => {
+        beforeEach(() => {
+            setup();
+            turnService.getMyWalkwayStatus.and.returnValue(of<DetailResult<MyWalkwayIrrigationStatus>>({ isSuccess: true, message: 'ok', data: status() }));
+        });
+
+        it('formatHour() trims the seconds off a "HH:mm:ss" TimeSpan', () => {
+            expect(component.formatHour('08:00:00')).toBe('08:00');
+        });
+
+        // Decisión explícita: solo la hora cuando hay un único Programa hoy en el sector -- evita
+        // ruido innecesario cuando no hace falta distinguir entre varios.
+        it('omits the Program name when it is the only schedule today', () => {
+            turnService.getMyWalkwayStatus.and.returnValue(
+                of<DetailResult<MyWalkwayIrrigationStatus>>({ isSuccess: true, message: 'ok', data: status({ todaySchedule: [schedule()] }) })
+            );
+            component.ngOnInit();
+
+            expect(component.scheduleLabel(schedule())).toBe('08:00-09:00');
+        });
+
+        // Decisión explícita: incluye el nombre del Programa cuando hay más de uno hoy -- evita
+        // confusión en sectores con turno mañana/noche.
+        it('includes the Program name when more than one schedule matches today', () => {
+            const morning = schedule({ programId: 'program-1', name: 'Riego Matutino', startTime: '08:00:00', endTime: '09:00:00' });
+            const night = schedule({ programId: 'program-2', name: 'Riego Nocturno', startTime: '20:00:00', endTime: '21:00:00' });
+            turnService.getMyWalkwayStatus.and.returnValue(
+                of<DetailResult<MyWalkwayIrrigationStatus>>({ isSuccess: true, message: 'ok', data: status({ todaySchedule: [morning, night] }) })
+            );
+            component.ngOnInit();
+
+            expect(component.scheduleLabel(morning)).toBe('Riego Matutino: 08:00-09:00');
+            expect(component.scheduleLabel(night)).toBe('Riego Nocturno: 20:00-21:00');
         });
     });
 });
