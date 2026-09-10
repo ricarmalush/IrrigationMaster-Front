@@ -160,9 +160,21 @@ describe('CommunityBroadcastComponent', () => {
 
         component.send();
 
-        expect(notificationService.send).toHaveBeenCalledWith('Corte de agua mañana', 'Organization', undefined);
+        expect(notificationService.send).toHaveBeenCalledWith('Corte de agua mañana', 'Organization', false, undefined);
         expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success', detail: 'Enviado a 15 destinatarios.' }));
         expect(component.form.value.message).toBeFalsy();
+    });
+
+    it('propagates isUrgent from the checkbox and resets it to false after a successful send', () => {
+        setup('PRESIDENTE');
+        notificationService.send.and.returnValue(of<OperationResult<number>>({ isSuccess: true, message: 'ok', data: 4 }));
+        component.form.controls.message.setValue('Avería que impide regar');
+        component.form.controls.isUrgent.setValue(true);
+
+        component.send();
+
+        expect(notificationService.send).toHaveBeenCalledWith('Avería que impide regar', 'Organization', true, undefined);
+        expect(component.form.controls.isUrgent.value).toBe(false);
     });
 
     // Regresión del bug reportado: patchValue() solo cambiaba el valor, dejando el control
@@ -192,7 +204,7 @@ describe('CommunityBroadcastComponent', () => {
 
         component.send();
 
-        expect(notificationService.send).toHaveBeenCalledWith('Corte de agua en este andador', 'Walkway', 'walkway-1');
+        expect(notificationService.send).toHaveBeenCalledWith('Corte de agua en este andador', 'Walkway', false, 'walkway-1');
     });
 
     it('singularizes the recipient count message for exactly 1 recipient', () => {

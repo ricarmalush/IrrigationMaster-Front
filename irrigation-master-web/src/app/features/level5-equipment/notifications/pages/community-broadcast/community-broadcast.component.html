@@ -24,6 +24,14 @@
             }
         </div>
 
+        <div class="flex items-start gap-2 mb-6">
+            <p-checkbox inputId="isUrgent" formControlName="isUrgent" [binary]="true"></p-checkbox>
+            <label for="isUrgent" class="text-sm">
+                <span class="font-semibold">Marcar como urgente (enviar push al móvil)</span>
+                <span class="block text-muted-color">Además del aviso en la app, llega como notificación push al teléfono de cada destinatario. Úsalo solo para cosas importantes (p. ej. una avería que impide regar).</span>
+            </label>
+        </div>
+
         @if (canEdit) {
             <div class="flex justify-end gap-3">
                 <button pButton type="button" label="Cancelar" severity="secondary" (click)="cancel()"></button>

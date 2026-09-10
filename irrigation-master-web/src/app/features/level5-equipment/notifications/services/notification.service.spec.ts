@@ -87,7 +87,7 @@ describe('NotificationService', () => {
         it('POSTs to Send with audience Organization and the fixed title/type, without a targetWalkwayId', () => {
             let result: OperationResult<number> | undefined;
 
-            service.send('Corte de agua programado mañana', 'Organization').subscribe((r) => (result = r));
+            service.send('Corte de agua programado mañana', 'Organization', false).subscribe((r) => (result = r));
 
             const req = httpMock.expectOne(`${BASE_URL}/Send`);
             expect(req.request.method).toBe('POST');
@@ -95,7 +95,8 @@ describe('NotificationService', () => {
                 audience: 'Organization',
                 title: 'Aviso de tu comunidad',
                 message: 'Corte de agua programado mañana',
-                type: 'Info'
+                type: 'Info',
+                isUrgent: false
             });
             req.flush({ data: 42, isSuccess: true, message: 'ok' });
 
@@ -105,7 +106,7 @@ describe('NotificationService', () => {
         it('POSTs to Send with audience Walkway and the targetWalkwayId', () => {
             let result: OperationResult<number> | undefined;
 
-            service.send('Corte de agua en este andador', 'Walkway', 'walkway-1').subscribe((r) => (result = r));
+            service.send('Corte de agua en este andador', 'Walkway', false, 'walkway-1').subscribe((r) => (result = r));
 
             const req = httpMock.expectOne(`${BASE_URL}/Send`);
             expect(req.request.body).toEqual({
@@ -113,6 +114,7 @@ describe('NotificationService', () => {
                 title: 'Aviso de tu comunidad',
                 message: 'Corte de agua en este andador',
                 type: 'Info',
+                isUrgent: false,
                 targetWalkwayId: 'walkway-1'
             });
             req.flush({ data: 8, isSuccess: true, message: 'ok' });
@@ -120,10 +122,24 @@ describe('NotificationService', () => {
             expect(result).toEqual({ isSuccess: true, message: 'ok', data: 8 });
         });
 
+        it('propagates isUrgent:true in the request body when the aviso se marca como urgente', () => {
+            service.send('Avería que impide regar', 'Organization', true).subscribe();
+
+            const req = httpMock.expectOne(`${BASE_URL}/Send`);
+            expect(req.request.body).toEqual({
+                audience: 'Organization',
+                title: 'Aviso de tu comunidad',
+                message: 'Avería que impide regar',
+                type: 'Info',
+                isUrgent: true
+            });
+            req.flush({ data: 3, isSuccess: true, message: 'ok' });
+        });
+
         it('on a 400 with a real backend validation message, resolves with it instead of throwing', () => {
             let result: OperationResult<number> | undefined;
 
-            service.send('', 'Organization').subscribe((r) => (result = r));
+            service.send('', 'Organization', false).subscribe((r) => (result = r));
 
             httpMock.expectOne(`${BASE_URL}/Send`).flush({ isSuccess: false, message: 'El campo Message es obligatorio.' }, { status: 400, statusText: 'Bad Request' });
 
@@ -133,7 +149,7 @@ describe('NotificationService', () => {
         it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
             let result: OperationResult<number> | undefined;
 
-            service.send('x', 'Organization').subscribe((r) => (result = r));
+            service.send('x', 'Organization', false).subscribe((r) => (result = r));
 
             httpMock.expectOne(`${BASE_URL}/Send`).error(new ProgressEvent('error'));
 

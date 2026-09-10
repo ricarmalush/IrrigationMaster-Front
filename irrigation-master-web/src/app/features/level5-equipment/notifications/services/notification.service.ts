@@ -19,6 +19,9 @@ interface SendNotificationApiRequest {
     title: string;
     message: string;
     type: string;
+    // Si true, el backend además del aviso in-app dispara un push real (FCM) al móvil de cada
+    // destinatario. false = comportamiento actual, solo bandeja.
+    isUrgent: boolean;
     targetWalkwayId?: string;
 }
 
@@ -36,9 +39,10 @@ export class NotificationService {
     }
 
     // Espejo de CommunityBroadcastViewModel: audiencia "Mi andador" (si el emisor tiene uno
-    // asignado) o "Toda mi organización", igual que el Picker de la App.
-    send(message: string, audience: BroadcastAudience, targetWalkwayId?: string): Observable<OperationResult<number>> {
-        const request: SendNotificationApiRequest = { audience, title: BROADCAST_TITLE, message, type: BROADCAST_TYPE };
+    // asignado) o "Toda mi organización", igual que el Picker de la App. isUrgent decide si además
+    // del aviso in-app se envía push al móvil.
+    send(message: string, audience: BroadcastAudience, isUrgent: boolean, targetWalkwayId?: string): Observable<OperationResult<number>> {
+        const request: SendNotificationApiRequest = { audience, title: BROADCAST_TITLE, message, type: BROADCAST_TYPE, isUrgent };
         if (audience === 'Walkway' && targetWalkwayId) {
             request.targetWalkwayId = targetWalkwayId;
         }

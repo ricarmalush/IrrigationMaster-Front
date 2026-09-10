@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
@@ -29,7 +30,7 @@ const ORGANIZATION_OPTION: AudienceOption = { label: 'Toda mi organización', va
 @Component({
     selector: 'app-community-broadcast',
     standalone: true,
-    imports: [ReactiveFormsModule, ButtonModule, TextareaModule, MessageModule, SelectModule],
+    imports: [ReactiveFormsModule, ButtonModule, TextareaModule, MessageModule, SelectModule, CheckboxModule],
     templateUrl: './community-broadcast.component.html'
 })
 export class CommunityBroadcastComponent implements OnInit {
@@ -48,7 +49,8 @@ export class CommunityBroadcastComponent implements OnInit {
 
     readonly form = this.fb.nonNullable.group({
         audience: this.fb.nonNullable.control<BroadcastAudience>('Organization'),
-        message: ['', Validators.required]
+        message: ['', Validators.required],
+        isUrgent: this.fb.nonNullable.control<boolean>(false)
     });
 
     constructor() {
@@ -82,9 +84,9 @@ export class CommunityBroadcastComponent implements OnInit {
         this.sending.set(true);
         this.errorMessage.set(null);
 
-        const { audience, message } = this.form.getRawValue();
+        const { audience, message, isUrgent } = this.form.getRawValue();
 
-        this.notificationService.send(message, audience, audience === 'Walkway' ? (this.walkwayId ?? undefined) : undefined).subscribe((result) => {
+        this.notificationService.send(message, audience, isUrgent, audience === 'Walkway' ? (this.walkwayId ?? undefined) : undefined).subscribe((result) => {
             this.sending.set(false);
             if (result.isSuccess) {
                 this.messageService.add({ severity: 'success', summary: 'Aviso enviado', detail: this.recipientDetail(result.data) });
@@ -107,7 +109,9 @@ export class CommunityBroadcastComponent implements OnInit {
     // formulario recién cargado. Preservamos el destinatario elegido (reset() sin argumentos lo
     // devolvería a 'Organization', el valor inicial del FormGroup).
     private resetMessageField(): void {
-        this.form.reset({ audience: this.form.controls.audience.value, message: '' });
+        // Preservamos el destinatario elegido; el toggle "urgente" vuelve a false -- un aviso
+        // nuevo no debería heredar la urgencia del anterior sin querer.
+        this.form.reset({ audience: this.form.controls.audience.value, message: '', isUrgent: false });
     }
 
     private recipientDetail(count: number | undefined): string {
