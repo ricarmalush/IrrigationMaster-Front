@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { toListResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse, PagedApiResponse } from '../../../../shared/models/api-response.model';
-import { Payment, RegisterPaymentRequest } from '../../../../shared/models/payment.model';
+import { ConfirmAllPendingPaymentsResult, Payment, RegisterPaymentRequest } from '../../../../shared/models/payment.model';
 import { ListResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -30,5 +30,18 @@ export class PaymentService {
     // pagada en el backend.
     confirm(id: string): Observable<OperationResult<boolean>> {
         return toOperationResult(this.http.patch<ApiResponse<boolean>>(`${this.apiUrl}/${id}/confirm`, null));
+    }
+
+    // Exclusivo SUPERADMIN: deshace una confirmación por error (Completed -> Pending), y con ella
+    // la factura asociada si sigue respaldada por este mismo pago (Paid -> Issued/Overdue).
+    revert(id: string): Observable<OperationResult<boolean>> {
+        return toOperationResult(this.http.patch<ApiResponse<boolean>>(`${this.apiUrl}/${id}/revert`, null));
+    }
+
+    // Exclusivo SUPERADMIN: confirma de golpe todos los pagos Pending de una organización para el
+    // mes en curso, reutilizando ConfirmPayment uno por uno por debajo.
+    confirmAllPendingForCurrentMonth(organizationId: string): Observable<OperationResult<ConfirmAllPendingPaymentsResult>> {
+        const params = new HttpParams().set('organizationId', organizationId);
+        return toOperationResult(this.http.post<ApiResponse<ConfirmAllPendingPaymentsResult>>(`${this.apiUrl}/ConfirmAllPendingForCurrentMonth`, null, { params }));
     }
 }

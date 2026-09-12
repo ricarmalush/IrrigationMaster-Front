@@ -8,7 +8,7 @@ import { AssignedLicense } from '../../../../../shared/models/assigned-license.m
 import { Invoice, InvoiceStatus } from '../../../../../shared/models/invoice.model';
 import { LicenceType } from '../../../../../shared/models/licence-type.model';
 import { Organization } from '../../../../../shared/models/organization.model';
-import { Payment } from '../../../../../shared/models/payment.model';
+import { ConfirmAllPendingPaymentsResult, Payment } from '../../../../../shared/models/payment.model';
 import { AppUser } from '../../../../../shared/models/user.model';
 import { ListResult, OperationResult } from '../../../../../shared/models/result.model';
 import { LicenceTypeService } from '../../../../level1-core/licence-types/services/licence-type.service';
@@ -120,7 +120,7 @@ describe('InvoiceListComponent', () => {
         invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel']);
         invoiceService.listMine.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         invoiceService.listAll.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
-        paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm']);
+        paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm', 'revert', 'confirmAllPendingForCurrentMonth']);
         paymentService.listByInvoice.and.returnValue(of<ListResult<Payment>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         organizationService = jasmine.createSpyObj('OrganizationService', ['list']);
         organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: true, message: 'ok', items: [organization], totalCount: 1 }));
@@ -515,6 +515,91 @@ describe('InvoiceListComponent', () => {
             component.confirmPayment(payment({}));
 
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'El pago ya fue confirmado.' }));
+        });
+
+        it('revertPayment(): en éxito, revierte el pago, muestra un toast y recarga pagos + facturas', () => {
+            paymentService.revert.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+
+            component.revertPayment(payment({ id: 'payment-9', invoiceId: 'invoice-9' }));
+
+            expect(paymentService.revert).toHaveBeenCalledWith('payment-9');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
+            expect(paymentService.listByInvoice).toHaveBeenCalledWith('invoice-9', 1, 50);
+            expect(invoiceService.listAll).toHaveBeenCalled();
+        });
+
+        it('revertPayment(): en fallo, muestra un toast de error', () => {
+            paymentService.revert.and.returnValue(of<OperationResult<boolean>>({ isSuccess: false, message: 'El pago no está confirmado.' }));
+
+            component.revertPayment(payment({}));
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'El pago no está confirmado.' }));
+        });
+    });
+
+    it('revertPayment(): no hace nada si no es SUPERADMIN', () => {
+        setup('PRESIDENTE');
+
+        component.revertPayment(payment({}));
+
+        expect(paymentService.revert).not.toHaveBeenCalled();
+    });
+
+    it('confirmAllPendingForCurrentMonth(): no hace nada si no es SUPERADMIN, aunque haya organización seleccionada', () => {
+        setup('PRESIDENTE');
+        component.bulkOrganizationId.set('org-1');
+
+        component.confirmAllPendingForCurrentMonth();
+
+        expect(paymentService.confirmAllPendingForCurrentMonth).not.toHaveBeenCalled();
+    });
+
+    describe('organizationOptions() / confirmAllPendingForCurrentMonth()', () => {
+        beforeEach(() => {
+            setup('SUPERADMIN');
+            organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: true, message: 'ok', items: [organization], totalCount: 1 }));
+            component.ngOnInit();
+        });
+
+        it('organizationOptions(): expone el mapa id->nombre ya cargado como opciones label/value', () => {
+            expect(component.organizationOptions()).toEqual([{ label: 'Comunidad de Regantes', value: 'org-1' }]);
+        });
+
+        it('confirmAllPendingForCurrentMonth(): no hace nada si no hay organización seleccionada', () => {
+            component.confirmAllPendingForCurrentMonth();
+
+            expect(paymentService.confirmAllPendingForCurrentMonth).not.toHaveBeenCalled();
+        });
+
+        it('en éxito sin fallos, muestra un toast de éxito y recarga la lista', () => {
+            component.bulkOrganizationId.set('org-1');
+            const data: ConfirmAllPendingPaymentsResult = { confirmedCount: 3, failedCount: 0, failedPaymentIds: [] };
+            paymentService.confirmAllPendingForCurrentMonth.and.returnValue(of<OperationResult<ConfirmAllPendingPaymentsResult>>({ isSuccess: true, message: 'ok', data }));
+
+            component.confirmAllPendingForCurrentMonth();
+
+            expect(paymentService.confirmAllPendingForCurrentMonth).toHaveBeenCalledWith('org-1');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success', detail: '3 pago(s) confirmado(s).' }));
+            expect(component.bulkConfirming()).toBe(false);
+        });
+
+        it('en éxito con algunos fallos, muestra un toast de advertencia con el detalle', () => {
+            component.bulkOrganizationId.set('org-1');
+            const data: ConfirmAllPendingPaymentsResult = { confirmedCount: 2, failedCount: 1, failedPaymentIds: ['payment-x'] };
+            paymentService.confirmAllPendingForCurrentMonth.and.returnValue(of<OperationResult<ConfirmAllPendingPaymentsResult>>({ isSuccess: true, message: 'ok', data }));
+
+            component.confirmAllPendingForCurrentMonth();
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'warn', detail: '2 confirmado(s), 1 no se pudieron confirmar.' }));
+        });
+
+        it('en fallo, muestra un toast de error', () => {
+            component.bulkOrganizationId.set('org-1');
+            paymentService.confirmAllPendingForCurrentMonth.and.returnValue(of<OperationResult<ConfirmAllPendingPaymentsResult>>({ isSuccess: false, message: 'No autorizado.' }));
+
+            component.confirmAllPendingForCurrentMonth();
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No autorizado.' }));
         });
     });
 });

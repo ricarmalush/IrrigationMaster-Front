@@ -23,3 +23,11 @@ export interface RegisterPaymentRequest {
     method: PaymentMethod;
     transactionId: string;
 }
+
+// Espejo de ConfirmAllPendingPaymentsResult. Un fallo individual (p. ej. un pago que ya no
+// estaba Pending) nunca aborta el resto del lote -- se reporta en FailedPaymentIds.
+export interface ConfirmAllPendingPaymentsResult {
+    confirmedCount: number;
+    failedCount: number;
+    failedPaymentIds: string[];
+}

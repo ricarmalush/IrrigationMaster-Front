@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { environment } from '../../../../../environments/environment';
-import { Payment, RegisterPaymentRequest } from '../../../../shared/models/payment.model';
+import { ConfirmAllPendingPaymentsResult, Payment, RegisterPaymentRequest } from '../../../../shared/models/payment.model';
 import { ListResult, OperationResult } from '../../../../shared/models/result.model';
 import { PaymentService } from './payment.service';
 
@@ -128,6 +128,57 @@ describe('PaymentService', () => {
             service.confirm('payment-1').subscribe((r) => (result = r));
 
             httpMock.expectOne(`${BASE_URL}/payment-1/confirm`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('revert()', () => {
+        it('PATCHes to {id}/revert with a null body', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.revert('payment-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/payment-1/revert`);
+            expect(req.request.method).toBe('PATCH');
+            expect(req.request.body).toBeNull();
+            req.flush({ data: true, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: true });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<boolean> | undefined;
+
+            service.revert('payment-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/payment-1/revert`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('confirmAllPendingForCurrentMonth()', () => {
+        it('POSTs with organizationId as a query param and a null body', () => {
+            let result: OperationResult<ConfirmAllPendingPaymentsResult> | undefined;
+
+            service.confirmAllPendingForCurrentMonth('org-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/ConfirmAllPendingForCurrentMonth`);
+            expect(req.request.method).toBe('POST');
+            expect(req.request.body).toBeNull();
+            expect(req.request.params.get('organizationId')).toBe('org-1');
+            req.flush({ data: { confirmedCount: 3, failedCount: 1, failedPaymentIds: ['payment-2'] }, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: { confirmedCount: 3, failedCount: 1, failedPaymentIds: ['payment-2'] } });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<ConfirmAllPendingPaymentsResult> | undefined;
+
+            service.confirmAllPendingForCurrentMonth('org-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/ConfirmAllPendingForCurrentMonth`).error(new ProgressEvent('error'));
 
             expect(result?.isSuccess).toBe(false);
         });
