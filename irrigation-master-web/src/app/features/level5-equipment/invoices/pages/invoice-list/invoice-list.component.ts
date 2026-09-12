@@ -23,11 +23,11 @@ import { Payment, PaymentMethod, PaymentStatus } from '../../../../../shared/mod
 import { PaymentService } from '../../../payments/services/payment.service';
 import { InvoiceService } from '../../services/invoice.service';
 
-// Confirmado con el usuario: por defecto, en los datos semilla del backend, ningún rol de
-// organización tiene asignados VIEW_ORG_INVOICES ni REGISTER_PAYMENTS -- este es el conjunto
-// aprobado para el gating del Front (PRESIDENTE y COORDINADOR_RIEGO, sin VicePresidente), el
-// backend sigue siendo la autoridad real vía permisos.
-const ORG_INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO'];
+// Actualizado: seed.json ahora concede VIEW_ORG_INVOICES a PRESIDENTE y VICEPRESIDENTE (decisión
+// vigente, sustituye a la anterior que incluía COORDINADOR_RIEGO en su lugar -- rol técnico de
+// riego, sin atribuciones financieras, que nunca tuvo el permiso real en el backend). El backend
+// sigue siendo la autoridad real vía permisos; este conjunto es el espejo en el Front.
+const ORG_INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
 
 const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
     Draft: 'Borrador',

@@ -211,4 +211,69 @@ describe('InvoiceService', () => {
             expect(result?.isSuccess).toBe(false);
         });
     });
+
+    describe('listMyIndividualInvoices()', () => {
+        it('sends PageNumber/PageSize to MyInvoices and maps a successful page', () => {
+            let result: ListResult<Invoice> | undefined;
+
+            service.listMyIndividualInvoices(1, 10).subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/MyInvoices`);
+            expect(req.request.params.get('PageNumber')).toBe('1');
+            req.flush({ data: [invoice], isSuccess: true, message: 'ok', pageNumber: 1, totalPages: 1, totalCount: 1, pageSize: 10 });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', items: [invoice], totalCount: 1 });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: ListResult<Invoice> | undefined;
+
+            service.listMyIndividualInvoices().subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/MyInvoices`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
+    describe('downloadReceipt()', () => {
+        it('GETs {id}/receipt as a blob and resolves it on success', () => {
+            let result: OperationResult<Blob> | undefined;
+            const pdfBlob = new Blob(['%PDF-fake'], { type: 'application/pdf' });
+
+            service.downloadReceipt('invoice-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne(`${BASE_URL}/invoice-1/receipt`);
+            expect(req.request.method).toBe('GET');
+            expect(req.request.responseType).toBe('blob');
+            req.flush(pdfBlob);
+
+            expect(result?.isSuccess).toBe(true);
+            expect(result?.data).toBe(pdfBlob);
+        });
+
+        it('on a 400 with a real backend message (as a JSON blob), resolves with it instead of throwing', async () => {
+            let result: OperationResult<Blob> | undefined;
+
+            service.downloadReceipt('invoice-1').subscribe((r) => (result = r));
+
+            const errorBlob = new Blob([JSON.stringify({ isSuccess: false, message: 'La factura todavía no está pagada.' })], { type: 'application/json' });
+            httpMock.expectOne(`${BASE_URL}/invoice-1/receipt`).flush(errorBlob, { status: 400, statusText: 'Bad Request' });
+
+            // El parseo del Blob de error es async (Blob.text()) -- se espera al siguiente tick.
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            expect(result).toEqual({ isSuccess: false, message: 'La factura todavía no está pagada.' });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<Blob> | undefined;
+
+            service.downloadReceipt('invoice-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne(`${BASE_URL}/invoice-1/receipt`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
 });

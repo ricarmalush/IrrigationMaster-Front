@@ -175,13 +175,14 @@ describe('InvoiceListComponent', () => {
             expect(component.canManage).toBe(false);
         });
 
-        it('COORDINADOR_RIEGO: mismo acceso que PRESIDENTE', () => {
-            setup('COORDINADOR_RIEGO');
+        it('VICEPRESIDENTE: mismo acceso que PRESIDENTE (decisión vigente: seed.json le concede VIEW_ORG_INVOICES)', () => {
+            setup('VICEPRESIDENTE');
             expect(component.canViewInvoices).toBe(true);
+            expect(component.canRegisterPayment).toBe(true);
         });
 
-        it('VICEPRESIDENTE: no tiene acceso (no está en el conjunto aprobado, a diferencia de otras pantallas)', () => {
-            setup('VICEPRESIDENTE');
+        it('COORDINADOR_RIEGO: no tiene acceso (rol técnico de riego, sin atribuciones financieras -- nunca tuvo VIEW_ORG_INVOICES en el backend)', () => {
+            setup('COORDINADOR_RIEGO');
             expect(component.canViewInvoices).toBe(false);
             expect(component.canRegisterPayment).toBe(false);
         });
