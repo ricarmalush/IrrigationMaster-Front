@@ -122,6 +122,7 @@ export class InvoiceListComponent implements OnInit {
     // activo en la tabla hoy).
     readonly bulkOrganizationId = signal<string | null>(null);
     readonly bulkConfirming = signal(false);
+    readonly sendingMonthlySummary = signal(false);
 
     private lastFirst = 0;
     private lastRows = 10;
@@ -363,6 +364,30 @@ export class InvoiceListComponent implements OnInit {
                     : `${confirmedCount} confirmado(s), ${failedCount} no se pudieron confirmar.`
             });
             this.fetch();
+        });
+    }
+
+    // Organización objetivo del resumen mensual: para SUPERADMIN, la elegida en el selector del
+    // lote (esta pantalla lista TODAS las organizaciones a la vez); para Presidente/
+    // Vicepresidente, siempre la propia (ellos solo ven su propia organización de todos modos).
+    private summaryTargetOrganizationId(): string | null {
+        return this.isSuperAdmin ? this.bulkOrganizationId() : this.currentSession.getOrganizationId();
+    }
+
+    sendMonthlySummary(): void {
+        const organizationId = this.summaryTargetOrganizationId();
+        if (!this.canViewInvoices || !organizationId) {
+            return;
+        }
+
+        this.sendingMonthlySummary.set(true);
+        this.invoiceService.sendMonthlySummary(organizationId).subscribe((result) => {
+            this.sendingMonthlySummary.set(false);
+            this.messageService.add({
+                severity: result.isSuccess ? 'success' : 'error',
+                summary: result.isSuccess ? 'Resumen mensual enviado' : 'No se pudo enviar el resumen mensual',
+                detail: result.isSuccess ? `Enviado a ${result.data} destinatario(s).` : result.message
+            });
         });
     }
 

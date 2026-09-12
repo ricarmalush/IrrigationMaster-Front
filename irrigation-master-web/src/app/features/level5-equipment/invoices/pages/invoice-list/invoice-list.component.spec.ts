@@ -117,7 +117,7 @@ describe('InvoiceListComponent', () => {
     let messageService: jasmine.SpyObj<MessageService>;
 
     function setup(role: string | null): void {
-        invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel']);
+        invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel', 'sendMonthlySummary']);
         invoiceService.listMine.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         invoiceService.listAll.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm', 'revert', 'confirmAllPendingForCurrentMonth']);
@@ -130,7 +130,8 @@ describe('InvoiceListComponent', () => {
         assignedLicenseService.list.and.returnValue(of<ListResult<AssignedLicense>>({ isSuccess: true, message: 'ok', items: [assignedLicense], totalCount: 1 }));
         licenceTypeService = jasmine.createSpyObj('LicenceTypeService', ['list']);
         licenceTypeService.list.and.returnValue(of<ListResult<LicenceType>>({ isSuccess: true, message: 'ok', items: [licenceType], totalCount: 1 }));
-        currentSession = jasmine.createSpyObj('CurrentSessionService', ['getRole']);
+        currentSession = jasmine.createSpyObj('CurrentSessionService', ['getRole', 'getOrganizationId']);
+        currentSession.getOrganizationId.and.returnValue('org-1');
         currentSession.getRole.and.returnValue(role);
         messageService = jasmine.createSpyObj('MessageService', ['add']);
 
@@ -601,5 +602,47 @@ describe('InvoiceListComponent', () => {
 
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No autorizado.' }));
         });
+
+        it('sendMonthlySummary(): para SUPERADMIN usa la organización elegida en el selector', () => {
+            component.bulkOrganizationId.set('org-1');
+            invoiceService.sendMonthlySummary.and.returnValue(of<OperationResult<number>>({ isSuccess: true, message: 'ok', data: 2 }));
+
+            component.sendMonthlySummary();
+
+            expect(invoiceService.sendMonthlySummary).toHaveBeenCalledWith('org-1');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success', detail: 'Enviado a 2 destinatario(s).' }));
+        });
+
+        it('sendMonthlySummary(): para SUPERADMIN sin organización elegida, no hace nada', () => {
+            component.sendMonthlySummary();
+
+            expect(invoiceService.sendMonthlySummary).not.toHaveBeenCalled();
+        });
+    });
+
+    it('sendMonthlySummary(): para PRESIDENTE, usa la propia organización de la sesión, sin selector', () => {
+        setup('PRESIDENTE');
+        invoiceService.sendMonthlySummary.and.returnValue(of<OperationResult<number>>({ isSuccess: true, message: 'ok', data: 1 }));
+
+        component.sendMonthlySummary();
+
+        expect(invoiceService.sendMonthlySummary).toHaveBeenCalledWith('org-1');
+    });
+
+    it('sendMonthlySummary(): no hace nada si el rol no puede ver facturas', () => {
+        setup('VECINO');
+
+        component.sendMonthlySummary();
+
+        expect(invoiceService.sendMonthlySummary).not.toHaveBeenCalled();
+    });
+
+    it('sendMonthlySummary(): en fallo, muestra un toast de error', () => {
+        setup('PRESIDENTE');
+        invoiceService.sendMonthlySummary.and.returnValue(of<OperationResult<number>>({ isSuccess: false, message: 'No se pudo enviar.' }));
+
+        component.sendMonthlySummary();
+
+        expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No se pudo enviar.' }));
     });
 });

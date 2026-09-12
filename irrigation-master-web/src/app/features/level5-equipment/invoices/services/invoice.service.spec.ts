@@ -236,6 +236,32 @@ describe('InvoiceService', () => {
         });
     });
 
+    describe('sendMonthlySummary()', () => {
+        it('POSTs with organizationId as a query param and a null body', () => {
+            let result: OperationResult<number> | undefined;
+
+            service.sendMonthlySummary('org-1').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/SendMonthlySummary`);
+            expect(req.request.method).toBe('POST');
+            expect(req.request.body).toBeNull();
+            expect(req.request.params.get('organizationId')).toBe('org-1');
+            req.flush({ data: 2, isSuccess: true, message: 'ok' });
+
+            expect(result).toEqual({ isSuccess: true, message: 'ok', data: 2 });
+        });
+
+        it('on a network failure, resolves with isSuccess:false instead of throwing', () => {
+            let result: OperationResult<number> | undefined;
+
+            service.sendMonthlySummary('org-1').subscribe((r) => (result = r));
+
+            httpMock.expectOne((r) => r.url === `${BASE_URL}/SendMonthlySummary`).error(new ProgressEvent('error'));
+
+            expect(result?.isSuccess).toBe(false);
+        });
+    });
+
     describe('downloadReceipt()', () => {
         it('GETs {id}/receipt as a blob and resolves it on success', () => {
             let result: OperationResult<Blob> | undefined;

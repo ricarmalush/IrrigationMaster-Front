@@ -27,6 +27,18 @@
                     ></button>
                 </div>
             }
+            @if (canViewInvoices) {
+                <button
+                    pButton
+                    type="button"
+                    label="Enviar resumen mensual"
+                    icon="pi pi-send"
+                    severity="secondary"
+                    [disabled]="isSuperAdmin && !bulkOrganizationId()"
+                    [loading]="sendingMonthlySummary()"
+                    (click)="sendMonthlySummary()"
+                ></button>
+            }
             @if (canManage) {
                 <button pButton type="button" label="Nueva factura" icon="pi pi-plus" routerLink="/invoices/new"></button>
             }

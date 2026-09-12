@@ -59,6 +59,14 @@ export class InvoiceService {
         return toListResult(this.http.get<PagedApiResponse<Invoice>>(`${this.apiUrl}/MyInvoices`, { params }));
     }
 
+    // Reenvía a demanda el resumen mensual de pagos de una organización (también se dispara
+    // automáticamente cada mes, ver MonthlyPaymentSummaryJob en el backend). Sin year/month,
+    // el backend usa el mes en curso.
+    sendMonthlySummary(organizationId: string): Observable<OperationResult<number>> {
+        const params = new HttpParams().set('organizationId', organizationId);
+        return toOperationResult(this.http.post<ApiResponse<number>>(`${this.apiUrl}/SendMonthlySummary`, null, { params }));
+    }
+
     // El backend devuelve el PDF crudo (200) o un Response<bool> en JSON (400) -- pedimos blob
     // siempre y, si el status no es 2xx, releemos ese blob como texto para sacar el mensaje real
     // del backend en vez de mostrar un error genérico.
