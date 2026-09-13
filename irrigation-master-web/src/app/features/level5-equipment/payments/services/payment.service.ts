@@ -38,6 +38,13 @@ export class PaymentService {
         return toOperationResult(this.http.patch<ApiResponse<boolean>>(`${this.apiUrl}/${id}/revert`, null));
     }
 
+    // Exclusivo SUPERADMIN: elimina un pago registrado por error que sigue Pending -- nunca llegó
+    // a afectar la factura, así que se borra en vez de revertirse (ver revert() para un pago ya
+    // Completed).
+    deletePending(id: string): Observable<OperationResult<boolean>> {
+        return toOperationResult(this.http.delete<ApiResponse<boolean>>(`${this.apiUrl}/${id}`));
+    }
+
     // Exclusivo SUPERADMIN: confirma de golpe todos los pagos Pending de una organización para el
     // mes en curso, reutilizando ConfirmPayment uno por uno por debajo.
     confirmAllPendingForCurrentMonth(organizationId: string): Observable<OperationResult<ConfirmAllPendingPaymentsResult>> {

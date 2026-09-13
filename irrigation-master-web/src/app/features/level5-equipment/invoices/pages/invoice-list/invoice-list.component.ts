@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -81,14 +81,16 @@ export class InvoiceListComponent implements OnInit {
     private licenceTypeService = inject(LicenceTypeService);
     private currentSession = inject(CurrentSessionService);
     private messageService = inject(MessageService);
+    private confirmationService = inject(ConfirmationService);
 
     readonly paymentMethodOptions = PAYMENT_METHOD_OPTIONS;
 
     readonly isSuperAdmin = this.currentSession.getRole() === 'SUPERADMIN';
     readonly canViewInvoices = ORG_INVOICE_ROLES.includes(this.currentSession.getRole() ?? '');
-    // Registrar pago comparte el mismo conjunto de roles que ver el listado (confirmado con el
-    // usuario): quien puede ver sus facturas también puede aportar la referencia de un pago.
-    readonly canRegisterPayment = this.canViewInvoices;
+    // Exclusivo SUPERADMIN (decisión de negocio: el dinero de los pagos llega directamente a la
+    // plataforma, nunca a Presidente/Vicepresidente) -- mismo criterio que Confirmar/Revertir/
+    // Eliminar. REGISTER_PAYMENTS ya no se concede a esos roles en seed.json.
+    readonly canRegisterPayment = this.isSuperAdmin;
     // Crear/Emitir/Cancelar factura y Confirmar pago son exclusivos de SUPERADMIN en el backend.
     readonly canManage = this.isSuperAdmin;
 
@@ -109,12 +111,17 @@ export class InvoiceListComponent implements OnInit {
     readonly registerTouched = signal(false);
     readonly registering = signal(false);
     private registeringInvoiceId: string | null = null;
+    // Total de la factura en el momento de abrir el diálogo -- referencia fija para detectar un
+    // importe distinto al confirmar (ver confirmRegister()), independiente de lo que el usuario
+    // termine tecleando en registerAmountValue.
+    private registeringInvoiceTotal = 0;
 
     readonly paymentsDialogVisible = signal(false);
     readonly payments = signal<Payment[]>([]);
     readonly paymentsLoading = signal(false);
     readonly confirmingPaymentId = signal<string | null>(null);
     readonly revertingPaymentId = signal<string | null>(null);
+    readonly deletingPaymentId = signal<string | null>(null);
 
     // "Marcar todos como pagados" opera sobre UNA organización a la vez -- esta pantalla, para
     // SUPERADMIN, lista facturas de TODAS las organizaciones a la vez, así que hace falta elegir
@@ -267,6 +274,7 @@ export class InvoiceListComponent implements OnInit {
         }
 
         this.registeringInvoiceId = invoice.id;
+        this.registeringInvoiceTotal = invoice.totalAmountValue;
         this.registerAmountValue.set(invoice.totalAmountValue);
         this.registerAmountCurrency.set(invoice.totalAmountCurrency);
         this.registerMethod.set('Transfer');
@@ -282,6 +290,27 @@ export class InvoiceListComponent implements OnInit {
 
         this.registerTouched.set(true);
         if (this.registerAmountValue() <= 0 || !this.registerAmountCurrency().trim() || !this.registerTransactionId().trim()) {
+            return;
+        }
+
+        // No bloquea (deja la puerta abierta a pagos parciales legítimos) -- solo avisa antes de
+        // guardar, para que un error de tecleo como registrar 5€ en una factura de 1€ no pase
+        // desapercibido hasta después.
+        if (this.registerAmountValue() !== this.registeringInvoiceTotal) {
+            this.confirmationService.confirm({
+                header: 'Importe distinto al de la factura',
+                message: `El importe (${this.registerAmountValue().toFixed(2)} ${this.registerAmountCurrency()}) no coincide con el total de la factura (${this.registeringInvoiceTotal.toFixed(2)} ${this.registerAmountCurrency()}). ¿Continuar?`,
+                icon: 'pi pi-exclamation-triangle',
+                accept: () => this.doRegister()
+            });
+            return;
+        }
+
+        this.doRegister();
+    }
+
+    private doRegister(): void {
+        if (!this.registeringInvoiceId) {
             return;
         }
 
@@ -338,6 +367,33 @@ export class InvoiceListComponent implements OnInit {
             if (result.isSuccess) {
                 this.loadPayments(payment.invoiceId);
                 this.fetch();
+            }
+        });
+    }
+
+    // Elimina un pago Pending registrado por error -- nunca llegó a afectar la factura (sigue
+    // Issued/Overdue), así que no hay nada que revertir, solo borrarlo (ver RevertPaymentCommand
+    // para un pago ya Completed).
+    confirmDeletePending(payment: Payment): void {
+        if (!this.isSuperAdmin) {
+            return;
+        }
+
+        this.confirmationService.confirm({
+            header: 'Eliminar pago pendiente',
+            message: `¿Eliminar el pago de ${payment.amountValue.toFixed(2)} ${payment.amountCurrency} (ref. ${payment.transactionId})? Esta acción no se puede deshacer.`,
+            icon: 'pi pi-exclamation-triangle',
+            accept: () => this.deletePending(payment)
+        });
+    }
+
+    private deletePending(payment: Payment): void {
+        this.deletingPaymentId.set(payment.id);
+        this.paymentService.deletePending(payment.id).subscribe((result) => {
+            this.deletingPaymentId.set(null);
+            this.notify(result, 'Pago eliminado', 'No se pudo eliminar el pago');
+            if (result.isSuccess) {
+                this.loadPayments(payment.invoiceId);
             }
         });
     }

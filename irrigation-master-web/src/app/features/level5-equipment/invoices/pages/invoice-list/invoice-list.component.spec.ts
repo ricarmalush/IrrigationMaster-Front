@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { of } from 'rxjs';
 
 import { CurrentSessionService } from '../../../../../core/services/current-session';
@@ -115,12 +115,13 @@ describe('InvoiceListComponent', () => {
     let licenceTypeService: jasmine.SpyObj<LicenceTypeService>;
     let currentSession: jasmine.SpyObj<CurrentSessionService>;
     let messageService: jasmine.SpyObj<MessageService>;
+    let confirmationService: jasmine.SpyObj<ConfirmationService>;
 
     function setup(role: string | null): void {
         invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel', 'sendMonthlySummary']);
         invoiceService.listMine.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         invoiceService.listAll.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
-        paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm', 'revert', 'confirmAllPendingForCurrentMonth']);
+        paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm', 'revert', 'deletePending', 'confirmAllPendingForCurrentMonth']);
         paymentService.listByInvoice.and.returnValue(of<ListResult<Payment>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         organizationService = jasmine.createSpyObj('OrganizationService', ['list']);
         organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: true, message: 'ok', items: [organization], totalCount: 1 }));
@@ -134,6 +135,7 @@ describe('InvoiceListComponent', () => {
         currentSession.getOrganizationId.and.returnValue('org-1');
         currentSession.getRole.and.returnValue(role);
         messageService = jasmine.createSpyObj('MessageService', ['add']);
+        confirmationService = jasmine.createSpyObj('ConfirmationService', ['confirm']);
 
         TestBed.configureTestingModule({
             imports: [InvoiceListComponent],
@@ -146,7 +148,8 @@ describe('InvoiceListComponent', () => {
                 { provide: AssignedLicenseService, useValue: assignedLicenseService },
                 { provide: LicenceTypeService, useValue: licenceTypeService },
                 { provide: CurrentSessionService, useValue: currentSession },
-                { provide: MessageService, useValue: messageService }
+                { provide: MessageService, useValue: messageService },
+                { provide: ConfirmationService, useValue: confirmationService }
             ]
         });
 
@@ -168,18 +171,18 @@ describe('InvoiceListComponent', () => {
             expect(component.canManage).toBe(true);
         });
 
-        it('PRESIDENTE: puede ver y registrar pagos, no gestionar (crear/emitir/cancelar)', () => {
+        it('PRESIDENTE: puede ver facturas, pero no registrar pagos ni gestionar (crear/emitir/cancelar) -- el dinero llega a la plataforma, no a la organización', () => {
             setup('PRESIDENTE');
             expect(component.isSuperAdmin).toBe(false);
             expect(component.canViewInvoices).toBe(true);
-            expect(component.canRegisterPayment).toBe(true);
+            expect(component.canRegisterPayment).toBe(false);
             expect(component.canManage).toBe(false);
         });
 
-        it('VICEPRESIDENTE: mismo acceso que PRESIDENTE (decisión vigente: seed.json le concede VIEW_ORG_INVOICES)', () => {
+        it('VICEPRESIDENTE: mismo acceso que PRESIDENTE (ve pero no registra pagos)', () => {
             setup('VICEPRESIDENTE');
             expect(component.canViewInvoices).toBe(true);
-            expect(component.canRegisterPayment).toBe(true);
+            expect(component.canRegisterPayment).toBe(false);
         });
 
         it('COORDINADOR_RIEGO: no tiene acceso (rol técnico de riego, sin atribuciones financieras -- nunca tuvo VIEW_ORG_INVOICES en el backend)', () => {
@@ -338,16 +341,16 @@ describe('InvoiceListComponent', () => {
             expect(component.canCancel(invoice({ status: 'Draft' }))).toBe(false);
         });
 
-        it('canRegister(): solo en Issued/Overdue, para un rol con permiso', () => {
-            setup('PRESIDENTE');
+        it('canRegister(): solo en Issued/Overdue, para SUPERADMIN', () => {
+            setup('SUPERADMIN');
             expect(component.canRegister(invoice({ status: 'Draft' }))).toBe(false);
             expect(component.canRegister(invoice({ status: 'Issued' }))).toBe(true);
             expect(component.canRegister(invoice({ status: 'Overdue' }))).toBe(true);
             expect(component.canRegister(invoice({ status: 'Paid' }))).toBe(false);
         });
 
-        it('canRegister(): siempre false para un rol sin permiso, aunque el estado sea válido', () => {
-            setup('VECINO');
+        it('canRegister(): siempre false para un rol sin permiso (incluido PRESIDENTE), aunque el estado sea válido', () => {
+            setup('PRESIDENTE');
             expect(component.canRegister(invoice({ status: 'Issued' }))).toBe(false);
         });
     });
@@ -448,7 +451,7 @@ describe('InvoiceListComponent', () => {
         });
 
         it('abre el diálogo precargado con el importe/moneda de la factura', () => {
-            setup('PRESIDENTE');
+            setup('SUPERADMIN');
 
             component.openRegisterDialog(invoice({ totalAmountValue: 200, totalAmountCurrency: 'USD' }));
 
@@ -458,7 +461,7 @@ describe('InvoiceListComponent', () => {
         });
 
         it('confirmRegister(): no envía si el importe, la moneda o la referencia están vacíos', () => {
-            setup('PRESIDENTE');
+            setup('SUPERADMIN');
             component.openRegisterDialog(invoice({}));
             component.registerAmountValue.set(0);
 
@@ -469,7 +472,7 @@ describe('InvoiceListComponent', () => {
         });
 
         it('confirmRegister(): en éxito, registra el pago, muestra un toast y cierra el diálogo', () => {
-            setup('PRESIDENTE');
+            setup('SUPERADMIN');
             paymentService.register.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'payment-9' }));
             component.openRegisterDialog(invoice({ id: 'invoice-9', totalAmountValue: 149.99, totalAmountCurrency: 'EUR' }));
             component.registerTransactionId.set('TX-0001');
@@ -482,7 +485,7 @@ describe('InvoiceListComponent', () => {
         });
 
         it('confirmRegister(): en fallo, muestra un toast de error y mantiene el diálogo abierto', () => {
-            setup('PRESIDENTE');
+            setup('SUPERADMIN');
             paymentService.register.and.returnValue(of<OperationResult<string>>({ isSuccess: false, message: 'La factura no admite el registro de un pago en su estado actual.' }));
             component.openRegisterDialog(invoice({}));
             component.registerTransactionId.set('TX-0001');
@@ -491,6 +494,48 @@ describe('InvoiceListComponent', () => {
 
             expect(component.registerDialogVisible()).toBe(true);
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'La factura no admite el registro de un pago en su estado actual.' }));
+        });
+
+        it('confirmRegister(): si el importe coincide con el total de la factura, registra directo sin pedir confirmación', () => {
+            setup('SUPERADMIN');
+            paymentService.register.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'payment-9' }));
+            component.openRegisterDialog(invoice({ totalAmountValue: 100, totalAmountCurrency: 'EUR' }));
+            component.registerTransactionId.set('TX-0001');
+
+            component.confirmRegister();
+
+            expect(confirmationService.confirm).not.toHaveBeenCalled();
+            expect(paymentService.register).toHaveBeenCalled();
+        });
+
+        it('confirmRegister(): si el importe NO coincide con el total, pide confirmación antes de registrar', () => {
+            setup('SUPERADMIN');
+            paymentService.register.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'payment-9' }));
+            component.openRegisterDialog(invoice({ totalAmountValue: 1, totalAmountCurrency: 'EUR' }));
+            component.registerAmountValue.set(5);
+            component.registerTransactionId.set('TX-0001');
+
+            component.confirmRegister();
+
+            expect(confirmationService.confirm).toHaveBeenCalledWith(
+                jasmine.objectContaining({ message: jasmine.stringMatching(/5,00 EUR.*1,00 EUR|5\.00 EUR.*1\.00 EUR/) })
+            );
+            // Sin aceptar todavía (el spy de confirm no invoca accept por sí solo): no se registra.
+            expect(paymentService.register).not.toHaveBeenCalled();
+        });
+
+        it('confirmRegister(): al aceptar el aviso de importe distinto, registra el pago con el importe tecleado', () => {
+            setup('SUPERADMIN');
+            paymentService.register.and.returnValue(of<OperationResult<string>>({ isSuccess: true, message: 'ok', data: 'payment-9' }));
+            confirmationService.confirm.and.callFake((c) => c.accept!());
+            component.openRegisterDialog(invoice({ id: 'invoice-9', totalAmountValue: 1, totalAmountCurrency: 'EUR' }));
+            component.registerAmountValue.set(5);
+            component.registerTransactionId.set('TX-0001');
+
+            component.confirmRegister();
+
+            expect(paymentService.register).toHaveBeenCalledWith({ invoiceId: 'invoice-9', amountValue: 5, amountCurrency: 'EUR', method: 'Transfer', transactionId: 'TX-0001' });
+            expect(component.registerDialogVisible()).toBe(false);
         });
     });
 
@@ -552,6 +597,37 @@ describe('InvoiceListComponent', () => {
 
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'El pago no está confirmado.' }));
         });
+
+        it('confirmDeletePending(): pide confirmación; al aceptar, elimina el pago, muestra un toast y recarga solo los pagos (no las facturas)', () => {
+            confirmationService.confirm.and.callFake((c) => c.accept!());
+            paymentService.deletePending.and.returnValue(of<OperationResult<boolean>>({ isSuccess: true, message: 'ok', data: true }));
+
+            component.confirmDeletePending(payment({ id: 'payment-9', invoiceId: 'invoice-9' }));
+
+            expect(confirmationService.confirm).toHaveBeenCalled();
+            expect(paymentService.deletePending).toHaveBeenCalledWith('payment-9');
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'success' }));
+            expect(paymentService.listByInvoice).toHaveBeenCalledWith('invoice-9', 1, 50);
+            expect(invoiceService.listAll).not.toHaveBeenCalled();
+        });
+
+        it('confirmDeletePending(): en fallo, muestra un toast de error', () => {
+            confirmationService.confirm.and.callFake((c) => c.accept!());
+            paymentService.deletePending.and.returnValue(of<OperationResult<boolean>>({ isSuccess: false, message: 'La acción sobre Pago no está permitida.' }));
+
+            component.confirmDeletePending(payment({}));
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'La acción sobre Pago no está permitida.' }));
+        });
+    });
+
+    it('confirmDeletePending(): no hace nada si no es SUPERADMIN', () => {
+        setup('PRESIDENTE');
+
+        component.confirmDeletePending(payment({}));
+
+        expect(confirmationService.confirm).not.toHaveBeenCalled();
+        expect(paymentService.deletePending).not.toHaveBeenCalled();
     });
 
     it('revertPayment(): no hace nada si no es SUPERADMIN', () => {

@@ -182,6 +182,7 @@
                     <td>
                         @if (payment.status === 'Pending') {
                             <button pButton type="button" label="Confirmar" class="p-button-text" [loading]="confirmingPaymentId() === payment.id" (click)="confirmPayment(payment)"></button>
+                            <button pButton type="button" label="Eliminar" severity="danger" class="p-button-text" [loading]="deletingPaymentId() === payment.id" (click)="confirmDeletePending(payment)"></button>
                         }
                         @if (payment.status === 'Completed') {
                             <button pButton type="button" label="Revertir" severity="danger" class="p-button-text" [loading]="revertingPaymentId() === payment.id" (click)="revertPayment(payment)"></button>
