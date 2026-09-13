@@ -25,7 +25,11 @@ const IRRIGATION_PROGRAM_ROLES = ['SUPERADMIN', 'COORDINADOR_RIEGO'];
 // backend ningún rol de organización tiene asignados VIEW_ORG_INVOICES/REGISTER_PAYMENTS por
 // defecto -- este es el conjunto aprobado para el gating del Front (confirmado con el usuario,
 // sin VicePresidente).
-const INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO'];
+// Espejo de a quién el backend concede VIEW_ORG_INVOICES en seed.json (SUPERADMIN queda exento
+// aparte, vía InvoiceAccessHelper.CanViewOrgInvoicesAsync) -- COORDINADOR_RIEGO NUNCA tuvo ese
+// permiso (es un rol técnico de riego, sin atribuciones financieras); VICEPRESIDENTE sí lo tiene,
+// con las mismas responsabilidades que PRESIDENTE.
+const INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
 // "Estado de Riego" para Vecino pasa a ser directamente la vista de su propio andador
 // (my-irrigation, ya construida) en vez de la org-wide: la vista de todos los andadores no le
 // aporta nada que no vea ya en la suya, y "Mi Riego" queda oculto para no duplicar el mismo
@@ -110,10 +114,17 @@ export class AppMenu {
             label: 'Sistema',
             items: [{ label: 'Configuración del Sistema', icon: 'pi pi-fw pi-cog', routerLink: ['/system-settings'] }]
         },
-        // Autoservicio de organización + back-office: SUPERADMIN ve todas las organizaciones,
-        // el resto de roles solo las suyas propias (la propia pantalla cambia de fuente según el
-        // rol). Todo el grupo se omite para quien no tenga ninguno de los dos permisos.
-        ...(this.canViewInvoices() ? [{ label: 'Facturación', items: [{ label: 'Facturas', icon: 'pi pi-fw pi-file-invoice', routerLink: ['/invoices'] }] }] : []),
+        {
+            label: 'Facturación',
+            items: [
+                // "Mis Facturas" (licencia individual propia) es autoservicio puro, sin permiso
+                // especial -- visible para los 3 roles, igual que Notificaciones.
+                { label: 'Mis Facturas', icon: 'pi pi-fw pi-receipt', routerLink: ['/my-invoices'] },
+                // "Facturas" (organización completa, back-office) sigue exigiendo VIEW_ORG_INVOICES
+                // o SUPERADMIN -- SUPERADMIN ve todas las organizaciones, el resto solo la suya.
+                ...(this.canViewInvoices() ? [{ label: 'Facturas', icon: 'pi pi-fw pi-file-invoice', routerLink: ['/invoices'] }] : [])
+            ]
+        },
         // Back-office cross-tenant: solo SUPERADMIN, nunca Presidente/Vicepresidente. Todo el grupo
         // se omite (no solo el ítem) para no dejar un encabezado "Plataforma" vacío. "Tipos de
         // Licencia" va antes que "Licencias": primero se define el tipo, luego se asigna.

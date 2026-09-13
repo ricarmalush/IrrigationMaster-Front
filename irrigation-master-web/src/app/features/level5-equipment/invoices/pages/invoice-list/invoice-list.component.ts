@@ -23,11 +23,11 @@ import { Payment, PaymentMethod, PaymentStatus } from '../../../../../shared/mod
 import { PaymentService } from '../../../payments/services/payment.service';
 import { InvoiceService } from '../../services/invoice.service';
 
-// Confirmado con el usuario: por defecto, en los datos semilla del backend, ningún rol de
-// organización tiene asignados VIEW_ORG_INVOICES ni REGISTER_PAYMENTS -- este es el conjunto
-// aprobado para el gating del Front (PRESIDENTE y COORDINADOR_RIEGO, sin VicePresidente), el
-// backend sigue siendo la autoridad real vía permisos.
-const ORG_INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO'];
+// Actualizado: seed.json ahora concede VIEW_ORG_INVOICES a PRESIDENTE y VICEPRESIDENTE (decisión
+// vigente, sustituye a la anterior que incluía COORDINADOR_RIEGO en su lugar -- rol técnico de
+// riego, sin atribuciones financieras, que nunca tuvo el permiso real en el backend). El backend
+// sigue siendo la autoridad real vía permisos; este conjunto es el espejo en el Front.
+const ORG_INVOICE_ROLES = ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE'];
 
 const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
     Draft: 'Borrador',
@@ -114,6 +114,15 @@ export class InvoiceListComponent implements OnInit {
     readonly payments = signal<Payment[]>([]);
     readonly paymentsLoading = signal(false);
     readonly confirmingPaymentId = signal<string | null>(null);
+    readonly revertingPaymentId = signal<string | null>(null);
+
+    // "Marcar todos como pagados" opera sobre UNA organización a la vez -- esta pantalla, para
+    // SUPERADMIN, lista facturas de TODAS las organizaciones a la vez, así que hace falta elegir
+    // explícitamente sobre cuál organización aplicar el lote (no hay un filtro de organización
+    // activo en la tabla hoy).
+    readonly bulkOrganizationId = signal<string | null>(null);
+    readonly bulkConfirming = signal(false);
+    readonly sendingMonthlySummary = signal(false);
 
     private lastFirst = 0;
     private lastRows = 10;
@@ -304,6 +313,81 @@ export class InvoiceListComponent implements OnInit {
                 this.loadPayments(payment.invoiceId);
                 this.fetch();
             }
+        });
+    }
+
+    // Deshace una confirmación por error (Completed -> Pending); la factura vuelve a Issued u
+    // Overdue en el backend si sigue respaldada por este mismo pago.
+    revertPayment(payment: Payment): void {
+        if (!this.isSuperAdmin) {
+            return;
+        }
+
+        this.revertingPaymentId.set(payment.id);
+        this.paymentService.revert(payment.id).subscribe((result) => {
+            this.revertingPaymentId.set(null);
+            this.notify(result, 'Pago revertido', 'No se pudo revertir el pago');
+            if (result.isSuccess) {
+                this.loadPayments(payment.invoiceId);
+                this.fetch();
+            }
+        });
+    }
+
+    // Opciones del selector de organización para el lote -- reutiliza el mismo mapa id->nombre ya
+    // cargado en ngOnInit para la columna "Organización" de la tabla.
+    organizationOptions(): { label: string; value: string }[] {
+        return Object.entries(this.organizationNames()).map(([id, name]) => ({ label: name, value: id }));
+    }
+
+    confirmAllPendingForCurrentMonth(): void {
+        const organizationId = this.bulkOrganizationId();
+        if (!this.isSuperAdmin || !organizationId) {
+            return;
+        }
+
+        this.bulkConfirming.set(true);
+        this.paymentService.confirmAllPendingForCurrentMonth(organizationId).subscribe((result) => {
+            this.bulkConfirming.set(false);
+
+            if (!result.isSuccess || !result.data) {
+                this.messageService.add({ severity: 'error', summary: 'No se pudo completar el confirmado masivo', detail: result.message });
+                return;
+            }
+
+            const { confirmedCount, failedCount } = result.data;
+            this.messageService.add({
+                severity: failedCount === 0 ? 'success' : 'warn',
+                summary: 'Confirmado masivo completado',
+                detail: failedCount === 0
+                    ? `${confirmedCount} pago(s) confirmado(s).`
+                    : `${confirmedCount} confirmado(s), ${failedCount} no se pudieron confirmar.`
+            });
+            this.fetch();
+        });
+    }
+
+    // Organización objetivo del resumen mensual: para SUPERADMIN, la elegida en el selector del
+    // lote (esta pantalla lista TODAS las organizaciones a la vez); para Presidente/
+    // Vicepresidente, siempre la propia (ellos solo ven su propia organización de todos modos).
+    private summaryTargetOrganizationId(): string | null {
+        return this.isSuperAdmin ? this.bulkOrganizationId() : this.currentSession.getOrganizationId();
+    }
+
+    sendMonthlySummary(): void {
+        const organizationId = this.summaryTargetOrganizationId();
+        if (!this.canViewInvoices || !organizationId) {
+            return;
+        }
+
+        this.sendingMonthlySummary.set(true);
+        this.invoiceService.sendMonthlySummary(organizationId).subscribe((result) => {
+            this.sendingMonthlySummary.set(false);
+            this.messageService.add({
+                severity: result.isSuccess ? 'success' : 'error',
+                summary: result.isSuccess ? 'Resumen mensual enviado' : 'No se pudo enviar el resumen mensual',
+                detail: result.isSuccess ? `Enviado a ${result.data} destinatario(s).` : result.message
+            });
         });
     }
 

@@ -173,23 +173,33 @@ describe('AppMenu', () => {
             expect(component.model().some((g) => g.label === 'Plataforma')).toBe(false);
         });
 
-        it('shows "Facturación" for SUPERADMIN/PRESIDENTE/COORDINADOR_RIEGO', () => {
-            for (const role of ['SUPERADMIN', 'PRESIDENTE', 'COORDINADOR_RIEGO']) {
+        it('shows "Facturación" -> "Facturas" for SUPERADMIN/PRESIDENTE/VICEPRESIDENTE', () => {
+            for (const role of ['SUPERADMIN', 'PRESIDENTE', 'VICEPRESIDENTE']) {
                 currentSession.establish(buildToken(role));
                 expect(itemVisible(component, 'Facturación', 'Facturas')).toBe(true);
             }
         });
 
-        it('omits the entire "Facturación" group (not just the item) for VECINO, VICEPRESIDENTE or no role', () => {
-            expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
+        it('always shows "Facturación" -> "Mis Facturas" (autoservicio), incluso sin rol o para VECINO/COORDINADOR_RIEGO', () => {
+            expect(itemVisible(component, 'Facturación', 'Mis Facturas')).toBe(true);
+
+            for (const role of ['VECINO', 'COORDINADOR_RIEGO']) {
+                currentSession.establish(buildToken(role));
+                expect(itemVisible(component, 'Facturación', 'Mis Facturas')).toBe(true);
+            }
+        });
+
+        it('omits the "Facturas" item (organización completa) for VECINO, COORDINADOR_RIEGO or no role -- el grupo "Facturación" en sí nunca se omite', () => {
+            expect(itemVisible(component, 'Facturación', 'Facturas')).toBe(false);
 
             currentSession.establish(buildToken('VECINO'));
-            expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
+            expect(itemVisible(component, 'Facturación', 'Facturas')).toBe(false);
 
-            // A diferencia de "Avisar a mi comunidad" (ADMIN_ROLES), Facturación usa un conjunto
-            // de roles distinto que deliberadamente no incluye a VicePresidente.
-            currentSession.establish(buildToken('VICEPRESIDENTE'));
-            expect(component.model().some((g) => g.label === 'Facturación')).toBe(false);
+            // COORDINADOR_RIEGO es un rol técnico de riego, sin atribuciones financieras -- nunca
+            // tuvo VIEW_ORG_INVOICES en el backend (ver seed.json), a diferencia de
+            // VicePresidente, que sí lo tiene con las mismas responsabilidades que Presidente.
+            currentSession.establish(buildToken('COORDINADOR_RIEGO'));
+            expect(itemVisible(component, 'Facturación', 'Facturas')).toBe(false);
         });
 
         // Hallazgo detectado en vivo: un Vecino veía y podía navegar a "Organizaciones"/"Sectores"/

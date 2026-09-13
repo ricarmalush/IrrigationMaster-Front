@@ -71,6 +71,7 @@ export const appRoutes: Routes = [
             },
             { path: 'invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoice-list/invoice-list.component').then((c) => c.InvoiceListComponent) },
             { path: 'invoices/new', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/invoice-create/invoice-create.component').then((c) => c.InvoiceCreateComponent) },
+            { path: 'my-invoices', loadComponent: () => import('./app/features/level5-equipment/invoices/pages/my-invoices/my-invoices.component').then((c) => c.MyInvoicesComponent) },
             // { path: 'audit-logs', loadComponent: () => import('./app/features/level5-equipment/audit-logs/pages/audit-logs/audit-logs.component').then(c => c.AuditLogsComponent) },
             { path: 'system-settings', loadComponent: () => import('./app/features/system-settings/pages/system-settings/system-settings.component').then((c) => c.SystemSettingsComponent) },
             {

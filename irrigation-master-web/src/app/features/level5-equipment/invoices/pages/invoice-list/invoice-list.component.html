@@ -4,6 +4,41 @@
             <h5 class="m-0">Facturación</h5>
         </ng-template>
         <ng-template pTemplate="end">
+            @if (isSuperAdmin) {
+                <div class="flex align-items-center gap-2">
+                    <p-select
+                        [ngModel]="bulkOrganizationId()"
+                        (ngModelChange)="bulkOrganizationId.set($event)"
+                        [options]="organizationOptions()"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Organización"
+                        styleClass="w-14rem"
+                    ></p-select>
+                    <button
+                        pButton
+                        type="button"
+                        label="Marcar todos como pagados"
+                        icon="pi pi-check-circle"
+                        severity="secondary"
+                        [disabled]="!bulkOrganizationId()"
+                        [loading]="bulkConfirming()"
+                        (click)="confirmAllPendingForCurrentMonth()"
+                    ></button>
+                </div>
+            }
+            @if (canViewInvoices) {
+                <button
+                    pButton
+                    type="button"
+                    label="Enviar resumen mensual"
+                    icon="pi pi-send"
+                    severity="secondary"
+                    [disabled]="isSuperAdmin && !bulkOrganizationId()"
+                    [loading]="sendingMonthlySummary()"
+                    (click)="sendMonthlySummary()"
+                ></button>
+            }
             @if (canManage) {
                 <button pButton type="button" label="Nueva factura" icon="pi pi-plus" routerLink="/invoices/new"></button>
             }
@@ -143,6 +178,9 @@
                     <td>
                         @if (payment.status === 'Pending') {
                             <button pButton type="button" label="Confirmar" class="p-button-text" [loading]="confirmingPaymentId() === payment.id" (click)="confirmPayment(payment)"></button>
+                        }
+                        @if (payment.status === 'Completed') {
+                            <button pButton type="button" label="Revertir" severity="danger" class="p-button-text" [loading]="revertingPaymentId() === payment.id" (click)="revertPayment(payment)"></button>
                         }
                     </td>
                 }
