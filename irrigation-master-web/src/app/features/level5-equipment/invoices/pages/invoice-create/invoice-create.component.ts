@@ -1,4 +1,6 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -25,10 +27,20 @@ const SCOPE_OPTIONS: { label: string; value: InvoiceScope }[] = [
     { label: 'Usuario individual', value: 'individual' }
 ];
 
+// Vencimiento como desplegable de días desde la emisión, en vez de una fecha libre -- evita que
+// dueDate acabe igual a issueDate (bug real: el datepicker por defecto partía del mismo Date()
+// para ambos campos, dando una factura vencida el mismo día en que se emite).
+const DUE_DATE_DAYS_OPTIONS: { label: string; value: number }[] = [
+    { label: '15 días', value: 15 },
+    { label: '30 días', value: 30 },
+    { label: '45 días', value: 45 },
+    { label: '60 días', value: 60 }
+];
+
 @Component({
     selector: 'app-invoice-create',
     standalone: true,
-    imports: [ReactiveFormsModule, RouterModule, ButtonModule, SelectModule, SelectButtonModule, InputNumberModule, InputTextModule, DatePickerModule, MessageModule],
+    imports: [ReactiveFormsModule, RouterModule, ButtonModule, SelectModule, SelectButtonModule, InputNumberModule, InputTextModule, DatePickerModule, MessageModule, DatePipe],
     templateUrl: './invoice-create.component.html'
 })
 export class InvoiceCreateComponent implements OnInit {
@@ -42,6 +54,7 @@ export class InvoiceCreateComponent implements OnInit {
     private messageService = inject(MessageService);
 
     readonly scopeOptions = SCOPE_OPTIONS;
+    readonly dueDateDaysOptions = DUE_DATE_DAYS_OPTIONS;
 
     readonly organizations = signal<Organization[]>([]);
     readonly organizationsLoading = signal(false);
@@ -67,11 +80,25 @@ export class InvoiceCreateComponent implements OnInit {
         organizationId: ['', Validators.required],
         userId: [''],
         assignedLicenseId: [''],
-        invoiceNumber: ['', Validators.required],
         issueDate: this.fb.nonNullable.control<Date>(new Date(), Validators.required),
-        dueDate: this.fb.nonNullable.control<Date>(new Date(), Validators.required),
+        dueDateDays: this.fb.nonNullable.control<number>(30, Validators.required),
         totalAmountValue: [0, [Validators.required, Validators.min(0.01)]],
         totalAmountCurrency: ['EUR', Validators.required]
+    });
+
+    // Fecha de vencimiento resultante, solo lectura: issueDate + dueDateDays, recalculada al vuelo
+    // sin que el usuario escriba ninguna fecha a mano (decisión explícita para evitar el bug de
+    // vencimiento == emisión que tenía el datepicker libre anterior).
+    private readonly issueDateValue = toSignal(this.form.controls.issueDate.valueChanges, {
+        initialValue: this.form.controls.issueDate.value
+    });
+    private readonly dueDateDaysValue = toSignal(this.form.controls.dueDateDays.valueChanges, {
+        initialValue: this.form.controls.dueDateDays.value
+    });
+    readonly dueDate = computed(() => {
+        const result = new Date(this.issueDateValue());
+        result.setDate(result.getDate() + this.dueDateDaysValue());
+        return result;
     });
 
     ngOnInit(): void {
@@ -131,9 +158,8 @@ export class InvoiceCreateComponent implements OnInit {
         this.invoiceService
             .create({
                 organizationId: value.organizationId,
-                invoiceNumber: value.invoiceNumber,
                 issueDate: this.toDateTimeString(value.issueDate),
-                dueDate: this.toDateTimeString(value.dueDate),
+                dueDate: this.toDateTimeString(this.dueDate()),
                 totalAmountValue: value.totalAmountValue,
                 totalAmountCurrency: value.totalAmountCurrency,
                 userId: isIndividual ? value.userId : null,

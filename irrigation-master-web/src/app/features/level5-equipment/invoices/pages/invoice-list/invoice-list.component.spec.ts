@@ -196,13 +196,29 @@ describe('InvoiceListComponent', () => {
     });
 
     describe('ngOnInit()', () => {
-        it('carga organización y usuarios para resolución, para cualquier rol', () => {
+        it('carga usuarios para resolución, para cualquier rol', () => {
             setup('PRESIDENTE');
 
             component.ngOnInit();
 
-            expect(component.organizationName('org-1')).toBe('Comunidad de Regantes');
             expect(component.scopeLabel(invoice({ userId: 'user-1' }))).toBe('Individual: Ricardo Ruiz');
+        });
+
+        it('SUPERADMIN: además resuelve el catálogo de organizaciones (única pantalla que lista TODAS las organizaciones a la vez)', () => {
+            setup('SUPERADMIN');
+
+            component.ngOnInit();
+
+            expect(organizationService.list).toHaveBeenCalled();
+            expect(component.organizationName('org-1')).toBe('Comunidad de Regantes');
+        });
+
+        it('roles de organización: no intenta resolver el catálogo de organizaciones (OrganizationsController es exclusivo SUPERADMIN -- sin esto, la pantalla entera quedaba bloqueada con "La acción sobre Organización no está permitida")', () => {
+            setup('PRESIDENTE');
+
+            component.ngOnInit();
+
+            expect(organizationService.list).not.toHaveBeenCalled();
         });
 
         it('SUPERADMIN: además resuelve la licencia de origen', () => {
@@ -227,7 +243,7 @@ describe('InvoiceListComponent', () => {
         // cualquiera de estos catálogos se traducía en mostrar el ID crudo en vez del nombre, en
         // silencio.
         it('surfaces el mensaje de error cuando falla el catálogo de organizaciones', () => {
-            setup('PRESIDENTE');
+            setup('SUPERADMIN');
             organizationService.list.and.returnValue(of<ListResult<Organization>>({ isSuccess: false, message: 'No tienes permiso para ver organizaciones.', items: [], totalCount: 0 }));
 
             component.ngOnInit();

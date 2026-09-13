@@ -128,15 +128,23 @@ export class InvoiceListComponent implements OnInit {
     private lastRows = 10;
 
     ngOnInit(): void {
-        // Las cuatro llamadas de aquí abajo alimentan mapas id->nombre para la tabla, no la lista
-        // de facturas en sí -- antes, un permiso denegado en cualquiera de ellas se traducía en
+        // Las llamadas de aquí abajo alimentan mapas id->nombre para la tabla, no la lista de
+        // facturas en sí -- antes, un permiso denegado en cualquiera de ellas se traducía en
         // mostrar el ID crudo en vez del nombre, en silencio (mismo bug que VIEW_HYDRAULIC_SECTORS).
-        this.organizationService.list(1, 100).subscribe((result) => {
-            this.organizationNames.set(Object.fromEntries(result.items.map((o) => [o.id, o.name])));
-            if (!result.isSuccess) {
-                this.errorMessage.set(result.message);
-            }
-        });
+
+        // OrganizationsController (listado paginado) es exclusivo SUPERADMIN -- Presidente/
+        // Vicepresidente solo ven facturas de SU PROPIA organización (ya resuelta en el backend vía
+        // currentUser.OrganizationId), así que ni necesitan este catálogo ni tienen permiso para
+        // pedirlo: la llamada incondicional disparaba aquí "La acción sobre 'Organización' no está
+        // permitida..." y dejaba la pantalla entera bloqueada para ellos.
+        if (this.isSuperAdmin) {
+            this.organizationService.list(1, 100).subscribe((result) => {
+                this.organizationNames.set(Object.fromEntries(result.items.map((o) => [o.id, o.name])));
+                if (!result.isSuccess) {
+                    this.errorMessage.set(result.message);
+                }
+            });
+        }
         // Sin OrganizationId: para SUPERADMIN devuelve usuarios de todas las organizaciones, igual
         // que en license-list (las facturas individuales pueden ser de cualquier organización).
         this.userService.list(1, 100).subscribe((result) => {

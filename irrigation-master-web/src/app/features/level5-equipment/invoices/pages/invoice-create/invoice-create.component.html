@@ -67,14 +67,6 @@
             </div>
 
             <div class="flex flex-col gap-2">
-                <label for="invoiceNumber" class="text-sm font-semibold">Nº de factura</label>
-                <input pInputText id="invoiceNumber" formControlName="invoiceNumber" class="w-full" placeholder="Ej. INV-0001" />
-                @if (form.controls.invoiceNumber.invalid && form.controls.invoiceNumber.touched) {
-                    <small class="text-red-500 text-sm">El número de factura es obligatorio.</small>
-                }
-            </div>
-
-            <div class="flex flex-col gap-2">
                 <label for="issueDate" class="text-sm font-semibold">Fecha de emisión</label>
                 <p-datepicker id="issueDate" formControlName="issueDate" dateFormat="dd/mm/yy" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
                 @if (form.controls.issueDate.invalid && form.controls.issueDate.touched) {
@@ -83,11 +75,13 @@
             </div>
 
             <div class="flex flex-col gap-2">
-                <label for="dueDate" class="text-sm font-semibold">Fecha de vencimiento</label>
-                <p-datepicker id="dueDate" formControlName="dueDate" dateFormat="dd/mm/yy" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
-                @if (form.controls.dueDate.invalid && form.controls.dueDate.touched) {
-                    <small class="text-red-500 text-sm">La fecha de vencimiento es obligatoria.</small>
-                }
+                <label for="dueDateDays" class="text-sm font-semibold">Vencimiento</label>
+                <p-select id="dueDateDays" formControlName="dueDateDays" [options]="dueDateDaysOptions" optionLabel="label" optionValue="value" styleClass="w-full"></p-select>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-sm font-semibold">Fecha de vencimiento resultante</label>
+                <input pInputText [value]="dueDate() | date: 'dd/MM/yyyy'" class="w-full" disabled />
             </div>
 
             <div class="flex flex-col gap-2">

@@ -111,7 +111,6 @@ describe('InvoiceService', () => {
     describe('create()', () => {
         const request: CreateInvoiceRequest = {
             organizationId: 'org-1',
-            invoiceNumber: 'INV-0001',
             issueDate: '2026-01-01T00:00:00',
             dueDate: '2026-01-31T00:00:00',
             totalAmountValue: 149.99,
