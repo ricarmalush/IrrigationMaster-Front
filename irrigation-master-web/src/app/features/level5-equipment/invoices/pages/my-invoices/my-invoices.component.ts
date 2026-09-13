@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, signal } from '@angular/core';
 import { inject } from '@angular/core';
 import { MessageService } from 'primeng/api';
@@ -33,7 +33,7 @@ const STATUS_SEVERITIES: Record<InvoiceStatus, 'success' | 'info' | 'danger' | '
 @Component({
     selector: 'app-my-invoices',
     standalone: true,
-    imports: [TableModule, ButtonModule, TagModule, ToolbarModule, MessageModule, DatePipe],
+    imports: [TableModule, ButtonModule, TagModule, ToolbarModule, MessageModule, DatePipe, DecimalPipe],
     templateUrl: './my-invoices.component.html'
 })
 export class MyInvoicesComponent {
