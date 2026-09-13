@@ -68,7 +68,9 @@
         >
             <ng-template pTemplate="header">
                 <tr>
-                    <th>Organización</th>
+                    @if (isSuperAdmin) {
+                        <th>Organización</th>
+                    }
                     <th>Ámbito</th>
                     <th>Nº factura</th>
                     <th>Importe</th>
@@ -81,7 +83,9 @@
             </ng-template>
             <ng-template pTemplate="body" let-invoice>
                 <tr>
-                    <td>{{ organizationName(invoice.organizationId) }}</td>
+                    @if (isSuperAdmin) {
+                        <td>{{ organizationName(invoice.organizationId) }}</td>
+                    }
                     <td>{{ scopeLabel(invoice) }}</td>
                     <td>{{ invoice.invoiceNumber }}</td>
                     <td>{{ invoice.totalAmountValue }} {{ invoice.totalAmountCurrency }}</td>
@@ -107,7 +111,7 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
                 <tr>
-                    <td colspan="9" class="text-center">No hay facturas.</td>
+                    <td [attr.colspan]="isSuperAdmin ? 9 : 8" class="text-center">No hay facturas.</td>
                 </tr>
             </ng-template>
         </p-table>

@@ -111,9 +111,8 @@ describe('InvoiceCreateComponent', () => {
     function fillRequiredFields(): void {
         component.form.patchValue({
             organizationId: 'org-1',
-            invoiceNumber: 'INV-0001',
             issueDate: new Date(2026, 0, 1),
-            dueDate: new Date(2026, 0, 31),
+            dueDateDays: 30,
             totalAmountValue: 149.99,
             totalAmountCurrency: 'EUR'
         });
@@ -161,7 +160,6 @@ describe('InvoiceCreateComponent', () => {
 
         expect(invoiceService.create).toHaveBeenCalledWith({
             organizationId: 'org-1',
-            invoiceNumber: 'INV-0001',
             issueDate: '2026-01-01T00:00:00',
             dueDate: '2026-01-31T00:00:00',
             totalAmountValue: 149.99,
@@ -297,6 +295,27 @@ describe('InvoiceCreateComponent', () => {
                 jasmine.objectContaining({ organizationId: 'org-1', userId: 'user-1', assignedLicenseId: null })
             );
             expect(router.navigate).toHaveBeenCalledWith(['/invoices']);
+        });
+    });
+
+    describe('dueDate (computed)', () => {
+        it('defaults dueDateDays to 30', () => {
+            setup();
+            component.ngOnInit();
+
+            expect(component.form.controls.dueDateDays.value).toBe(30);
+        });
+
+        it('recalculates the resulting due date when dueDateDays changes', () => {
+            setup();
+            component.ngOnInit();
+            component.form.controls.issueDate.setValue(new Date(2026, 0, 1));
+
+            component.form.controls.dueDateDays.setValue(15);
+            expect(component.dueDate()).toEqual(new Date(2026, 0, 16));
+
+            component.form.controls.dueDateDays.setValue(60);
+            expect(component.dueDate()).toEqual(new Date(2026, 2, 2));
         });
     });
 

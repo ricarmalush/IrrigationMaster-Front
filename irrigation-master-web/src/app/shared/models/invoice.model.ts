@@ -20,7 +20,6 @@ export interface Invoice {
 
 export interface CreateInvoiceRequest {
     organizationId: string;
-    invoiceNumber: string;
     issueDate: string;
     dueDate: string;
     totalAmountValue: number;
