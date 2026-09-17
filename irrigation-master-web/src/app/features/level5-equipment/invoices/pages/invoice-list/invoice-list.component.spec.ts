@@ -118,7 +118,7 @@ describe('InvoiceListComponent', () => {
     let confirmationService: jasmine.SpyObj<ConfirmationService>;
 
     function setup(role: string | null): void {
-        invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel', 'sendMonthlySummary']);
+        invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel', 'sendMonthlySummary', 'downloadMonthlyReport', 'downloadAuditReport']);
         invoiceService.listMine.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         invoiceService.listAll.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm', 'revert', 'deletePending', 'confirmAllPendingForCurrentMonth']);
@@ -647,6 +647,15 @@ describe('InvoiceListComponent', () => {
         expect(paymentService.confirmAllPendingForCurrentMonth).not.toHaveBeenCalled();
     });
 
+    it('openAuditReportDialog(): no hace nada si no es SUPERADMIN, aunque haya organización seleccionada', () => {
+        setup('PRESIDENTE');
+        component.bulkOrganizationId.set('org-1');
+
+        component.openAuditReportDialog();
+
+        expect(component.auditReportDialogVisible()).toBe(false);
+    });
+
     describe('organizationOptions() / confirmAllPendingForCurrentMonth()', () => {
         beforeEach(() => {
             setup('SUPERADMIN');
@@ -736,5 +745,82 @@ describe('InvoiceListComponent', () => {
         component.sendMonthlySummary();
 
         expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No se pudo enviar.' }));
+    });
+
+    describe('downloadMonthlyReport()', () => {
+        it('para PRESIDENTE, usa la propia organización de la sesión y descarga el PDF en éxito', () => {
+            setup('PRESIDENTE');
+            const blob = new Blob(['%PDF-fake'], { type: 'application/pdf' });
+            invoiceService.downloadMonthlyReport.and.returnValue(of<OperationResult<Blob>>({ isSuccess: true, message: '', data: blob }));
+            spyOn(URL, 'createObjectURL').and.returnValue('blob:fake-url');
+            spyOn(URL, 'revokeObjectURL');
+
+            component.downloadMonthlyReport();
+
+            expect(invoiceService.downloadMonthlyReport).toHaveBeenCalledWith('org-1', jasmine.any(Number), jasmine.any(Number));
+            expect(component.downloadingMonthlyReport()).toBe(false);
+            expect(messageService.add).not.toHaveBeenCalled();
+        });
+
+        it('no hace nada si el rol no puede ver facturas', () => {
+            setup('VECINO');
+
+            component.downloadMonthlyReport();
+
+            expect(invoiceService.downloadMonthlyReport).not.toHaveBeenCalled();
+        });
+
+        it('en fallo, muestra un toast de error', () => {
+            setup('PRESIDENTE');
+            invoiceService.downloadMonthlyReport.and.returnValue(of<OperationResult<Blob>>({ isSuccess: false, message: 'No se pudo generar el informe.' }));
+
+            component.downloadMonthlyReport();
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No se pudo generar el informe.' }));
+        });
+    });
+
+    describe('openAuditReportDialog() / confirmAuditReport()', () => {
+        beforeEach(() => setup('SUPERADMIN'));
+
+        it('openAuditReportDialog(): no abre el diálogo si no hay organización seleccionada', () => {
+            component.openAuditReportDialog();
+
+            expect(component.auditReportDialogVisible()).toBe(false);
+        });
+
+        it('openAuditReportDialog(): con organización elegida, abre el diálogo', () => {
+            component.bulkOrganizationId.set('org-1');
+
+            component.openAuditReportDialog();
+
+            expect(component.auditReportDialogVisible()).toBe(true);
+        });
+
+        it('confirmAuditReport(): en éxito, descarga el PDF y cierra el diálogo', () => {
+            component.bulkOrganizationId.set('org-1');
+            component.openAuditReportDialog();
+            const blob = new Blob(['%PDF-fake'], { type: 'application/pdf' });
+            invoiceService.downloadAuditReport.and.returnValue(of<OperationResult<Blob>>({ isSuccess: true, message: '', data: blob }));
+            spyOn(URL, 'createObjectURL').and.returnValue('blob:fake-url');
+            spyOn(URL, 'revokeObjectURL');
+
+            component.confirmAuditReport();
+
+            expect(invoiceService.downloadAuditReport).toHaveBeenCalledWith('org-1', jasmine.any(String), jasmine.any(String));
+            expect(component.auditReportDialogVisible()).toBe(false);
+            expect(component.generatingAuditReport()).toBe(false);
+        });
+
+        it('confirmAuditReport(): en fallo, muestra un toast de error y mantiene el diálogo abierto', () => {
+            component.bulkOrganizationId.set('org-1');
+            component.openAuditReportDialog();
+            invoiceService.downloadAuditReport.and.returnValue(of<OperationResult<Blob>>({ isSuccess: false, message: 'No autorizado.' }));
+
+            component.confirmAuditReport();
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No autorizado.' }));
+            expect(component.auditReportDialogVisible()).toBe(true);
+        });
     });
 });

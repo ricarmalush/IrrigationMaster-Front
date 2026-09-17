@@ -71,7 +71,25 @@ export class InvoiceService {
     // siempre y, si el status no es 2xx, releemos ese blob como texto para sacar el mensaje real
     // del backend en vez de mostrar un error genérico.
     downloadReceipt(invoiceId: string): Observable<OperationResult<Blob>> {
-        return this.http.get(`${this.apiUrl}/${invoiceId}/receipt`, { observe: 'response', responseType: 'blob' }).pipe(
+        return this.downloadPdf(`${this.apiUrl}/${invoiceId}/receipt`);
+    }
+
+    // Informe mensual (Pagado/Pendiente/Impago) de una organización, descargable en PDF -- mismo
+    // alcance que sendMonthlySummary, pero a demanda como documento en vez de email.
+    downloadMonthlyReport(organizationId: string, year: number, month: number): Observable<OperationResult<Blob>> {
+        const params = new HttpParams().set('organizationId', organizationId).set('year', year).set('month', month);
+        return this.downloadPdf(`${this.apiUrl}/MonthlyReport`, params);
+    }
+
+    // Informe de auditoría de pagos (todas las facturas del rango, cualquier estado, con detalle
+    // de pago cuando están Pagadas) -- exclusivo SUPERADMIN.
+    downloadAuditReport(organizationId: string, fromDate: string, toDate: string): Observable<OperationResult<Blob>> {
+        const params = new HttpParams().set('organizationId', organizationId).set('fromDate', fromDate).set('toDate', toDate);
+        return this.downloadPdf(`${this.apiUrl}/AuditReport`, params);
+    }
+
+    private downloadPdf(url: string, params?: HttpParams): Observable<OperationResult<Blob>> {
+        return this.http.get(url, { params, observe: 'response', responseType: 'blob' }).pipe(
             map((response) => ({ isSuccess: true, message: '', data: response.body ?? undefined }) as OperationResult<Blob>),
             catchError((error: HttpErrorResponse) => {
                 const errorBlob = error.error as Blob | undefined;

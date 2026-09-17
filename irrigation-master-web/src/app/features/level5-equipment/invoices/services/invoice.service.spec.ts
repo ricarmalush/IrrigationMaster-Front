@@ -301,4 +301,44 @@ describe('InvoiceService', () => {
             expect(result?.isSuccess).toBe(false);
         });
     });
+
+    describe('downloadMonthlyReport()', () => {
+        it('GETs MonthlyReport with organizationId/year/month as query params, as a blob', () => {
+            let result: OperationResult<Blob> | undefined;
+            const pdfBlob = new Blob(['%PDF-fake'], { type: 'application/pdf' });
+
+            service.downloadMonthlyReport('org-1', 2026, 9).subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/MonthlyReport`);
+            expect(req.request.method).toBe('GET');
+            expect(req.request.responseType).toBe('blob');
+            expect(req.request.params.get('organizationId')).toBe('org-1');
+            expect(req.request.params.get('year')).toBe('2026');
+            expect(req.request.params.get('month')).toBe('9');
+            req.flush(pdfBlob);
+
+            expect(result?.isSuccess).toBe(true);
+            expect(result?.data).toBe(pdfBlob);
+        });
+    });
+
+    describe('downloadAuditReport()', () => {
+        it('GETs AuditReport with organizationId/fromDate/toDate as query params, as a blob', () => {
+            let result: OperationResult<Blob> | undefined;
+            const pdfBlob = new Blob(['%PDF-fake'], { type: 'application/pdf' });
+
+            service.downloadAuditReport('org-1', '2026-01-01', '2026-09-30').subscribe((r) => (result = r));
+
+            const req = httpMock.expectOne((r) => r.url === `${BASE_URL}/AuditReport`);
+            expect(req.request.method).toBe('GET');
+            expect(req.request.responseType).toBe('blob');
+            expect(req.request.params.get('organizationId')).toBe('org-1');
+            expect(req.request.params.get('fromDate')).toBe('2026-01-01');
+            expect(req.request.params.get('toDate')).toBe('2026-09-30');
+            req.flush(pdfBlob);
+
+            expect(result?.isSuccess).toBe(true);
+            expect(result?.data).toBe(pdfBlob);
+        });
+    });
 });

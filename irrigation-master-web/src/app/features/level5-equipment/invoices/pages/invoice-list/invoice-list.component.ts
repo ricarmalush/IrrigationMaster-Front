@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
@@ -69,8 +70,9 @@ const PAYMENT_METHOD_OPTIONS: { label: string; value: PaymentMethod }[] = [
 @Component({
     selector: 'app-invoice-list',
     standalone: true,
-    imports: [RouterModule, FormsModule, TableModule, ButtonModule, TagModule, ToolbarModule, MessageModule, DialogModule, InputNumberModule, InputTextModule, SelectModule, DatePipe],
-    templateUrl: './invoice-list.component.html'
+    imports: [RouterModule, FormsModule, TableModule, ButtonModule, TagModule, ToolbarModule, MessageModule, DialogModule, DatePickerModule, InputNumberModule, InputTextModule, SelectModule, DatePipe],
+    templateUrl: './invoice-list.component.html',
+    styleUrl: './invoice-list.component.scss'
 })
 export class InvoiceListComponent implements OnInit {
     private invoiceService = inject(InvoiceService);
@@ -130,6 +132,16 @@ export class InvoiceListComponent implements OnInit {
     readonly bulkOrganizationId = signal<string | null>(null);
     readonly bulkConfirming = signal(false);
     readonly sendingMonthlySummary = signal(false);
+    readonly downloadingMonthlyReport = signal(false);
+
+    // "Informe de auditoría de pagos" (SUPERADMIN): mismo bulkOrganizationId ya existente, con un
+    // rango de fechas propio en un diálogo, ya que aquí sí hace falta cubrir varios meses de una
+    // vez (a diferencia de "Enviar resumen mensual"/"Descargar informe del mes", siempre del mes
+    // en curso).
+    readonly auditReportDialogVisible = signal(false);
+    readonly auditFromDate = signal<Date>(this.startOfCurrentMonth());
+    readonly auditToDate = signal<Date>(new Date());
+    readonly generatingAuditReport = signal(false);
 
     private lastFirst = 0;
     private lastRows = 10;
@@ -453,6 +465,82 @@ export class InvoiceListComponent implements OnInit {
                 detail: result.isSuccess ? `Enviado a ${result.data} destinatario(s).` : result.message
             });
         });
+    }
+
+    // Mismo alcance (organización + mes en curso) que sendMonthlySummary(), pero como PDF
+    // descargable en vez de email.
+    downloadMonthlyReport(): void {
+        const organizationId = this.summaryTargetOrganizationId();
+        if (!this.canViewInvoices || !organizationId) {
+            return;
+        }
+
+        const now = new Date();
+        this.downloadingMonthlyReport.set(true);
+        this.invoiceService.downloadMonthlyReport(organizationId, now.getFullYear(), now.getMonth() + 1).subscribe((result) => {
+            this.downloadingMonthlyReport.set(false);
+
+            if (!result.isSuccess || !result.data) {
+                this.messageService.add({ severity: 'error', summary: 'No se pudo descargar el informe', detail: result.message });
+                return;
+            }
+
+            this.triggerDownload(result.data, `informe-mensual-${organizationId}-${now.getFullYear()}-${now.getMonth() + 1}.pdf`);
+        });
+    }
+
+    // Abre el diálogo del informe de auditoría -- requiere organización elegida en el selector del
+    // lote (mismo bulkOrganizationId que "Marcar todos como pagados").
+    openAuditReportDialog(): void {
+        if (!this.isSuperAdmin || !this.bulkOrganizationId()) {
+            return;
+        }
+
+        this.auditFromDate.set(this.startOfCurrentMonth());
+        this.auditToDate.set(new Date());
+        this.auditReportDialogVisible.set(true);
+    }
+
+    confirmAuditReport(): void {
+        const organizationId = this.bulkOrganizationId();
+        if (!this.isSuperAdmin || !organizationId) {
+            return;
+        }
+
+        const fromDate = this.auditFromDate();
+        const toDate = this.auditToDate();
+
+        this.generatingAuditReport.set(true);
+        this.invoiceService.downloadAuditReport(organizationId, this.toDateOnlyString(fromDate), this.toDateOnlyString(toDate)).subscribe((result) => {
+            this.generatingAuditReport.set(false);
+
+            if (!result.isSuccess || !result.data) {
+                this.messageService.add({ severity: 'error', summary: 'No se pudo generar el informe de auditoría', detail: result.message });
+                return;
+            }
+
+            this.triggerDownload(result.data, `auditoria-pagos-${organizationId}-${this.toDateOnlyString(fromDate)}-${this.toDateOnlyString(toDate)}.pdf`);
+            this.auditReportDialogVisible.set(false);
+        });
+    }
+
+    private triggerDownload(blob: Blob, fileName: string): void {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    private startOfCurrentMonth(): Date {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    private toDateOnlyString(date: Date): string {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     }
 
     private loadPayments(invoiceId: string): void {

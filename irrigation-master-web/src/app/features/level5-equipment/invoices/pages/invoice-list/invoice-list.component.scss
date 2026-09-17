@@ -1,0 +1,14 @@
+:host ::ng-deep {
+    .p-toolbar-end {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .p-toolbar-end .p-button {
+        min-width: 11rem;
+        min-height: 3.25rem;
+        white-space: normal;
+        text-align: center;
+        justify-content: center;
+    }
+}

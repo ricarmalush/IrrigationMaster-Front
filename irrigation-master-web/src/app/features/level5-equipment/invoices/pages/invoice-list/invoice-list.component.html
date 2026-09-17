@@ -25,18 +25,27 @@
                         [loading]="bulkConfirming()"
                         (click)="confirmAllPendingForCurrentMonth()"
                     ></button>
+                    <button
+                        pButton
+                        type="button"
+                        label="Informe de auditoría de pagos"
+                        icon="pi pi-shield"
+                        severity="secondary"
+                        [disabled]="!bulkOrganizationId()"
+                        (click)="openAuditReportDialog()"
+                    ></button>
                 </div>
             }
             @if (canViewInvoices) {
                 <button
                     pButton
                     type="button"
-                    label="Enviar resumen mensual"
-                    icon="pi pi-send"
+                    label="Descargar informe del mes"
+                    icon="pi pi-file-pdf"
                     severity="secondary"
                     [disabled]="isSuperAdmin && !bulkOrganizationId()"
-                    [loading]="sendingMonthlySummary()"
-                    (click)="sendMonthlySummary()"
+                    [loading]="downloadingMonthlyReport()"
+                    (click)="downloadMonthlyReport()"
                 ></button>
             }
             @if (canManage) {
@@ -199,5 +208,23 @@
     </p-table>
     <div class="flex justify-end mt-6">
         <button pButton type="button" label="Cerrar" severity="secondary" (click)="paymentsDialogVisible.set(false)"></button>
+    </div>
+</p-dialog>
+
+<p-dialog header="Informe de auditoría de pagos" [(visible)]="auditReportDialogVisible" [modal]="true" [style]="{ width: '28rem' }">
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2">
+            <label for="auditFromDate" class="text-sm font-semibold">Desde</label>
+            <p-datepicker id="auditFromDate" [ngModel]="auditFromDate()" (ngModelChange)="auditFromDate.set($event)" dateFormat="dd/mm/yy" appendTo="body" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
+        </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="auditToDate" class="text-sm font-semibold">Hasta</label>
+            <p-datepicker id="auditToDate" [ngModel]="auditToDate()" (ngModelChange)="auditToDate.set($event)" dateFormat="dd/mm/yy" appendTo="body" styleClass="w-full" inputStyleClass="w-full"></p-datepicker>
+        </div>
+    </div>
+    <div class="flex justify-end gap-3 mt-6">
+        <button pButton type="button" label="Cancelar" severity="secondary" (click)="auditReportDialogVisible.set(false)"></button>
+        <button pButton type="button" label="Generar PDF" [loading]="generatingAuditReport()" (click)="confirmAuditReport()"></button>
     </div>
 </p-dialog>
