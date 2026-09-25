@@ -104,6 +104,7 @@ export class InvoiceListComponent implements OnInit {
     readonly userNames = signal<Record<string, string>>({});
     readonly licenceOriginNames = signal<Record<string, string>>({});
     readonly actingId = signal<string | null>(null);
+    readonly downloadingReceiptId = signal<string | null>(null);
 
     readonly registerDialogVisible = signal(false);
     readonly registerAmountValue = signal(0);
@@ -248,6 +249,32 @@ export class InvoiceListComponent implements OnInit {
 
     canRegister(invoice: Invoice): boolean {
         return this.canRegisterPayment && (invoice.status === 'Issued' || invoice.status === 'Overdue');
+    }
+
+    // El backend (GenerateInvoiceReceiptQuery) solo genera comprobante de una factura ya Paid, y
+    // autoriza tanto al propio titular como a SUPERADMIN/VIEW_ORG_INVOICES -- de ahí que este botón
+    // de back-office, a diferencia de "Mis Facturas" (autoservicio), no necesite comprobar el
+    // titular: canViewInvoices ya lo cubre para llegar hasta aquí.
+    canDownloadReceipt(invoice: Invoice): boolean {
+        return invoice.status === 'Paid';
+    }
+
+    downloadReceipt(invoice: Invoice): void {
+        if (!this.canDownloadReceipt(invoice) || this.downloadingReceiptId()) {
+            return;
+        }
+
+        this.downloadingReceiptId.set(invoice.id);
+        this.invoiceService.downloadReceipt(invoice.id).subscribe((result) => {
+            this.downloadingReceiptId.set(null);
+
+            if (!result.isSuccess || !result.data) {
+                this.messageService.add({ severity: 'error', summary: 'No se pudo descargar el comprobante', detail: result.message });
+                return;
+            }
+
+            this.triggerDownload(result.data, `comprobante-${invoice.invoiceNumber}.pdf`);
+        });
     }
 
     issue(invoice: Invoice): void {

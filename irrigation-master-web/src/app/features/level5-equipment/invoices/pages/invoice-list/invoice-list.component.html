@@ -114,6 +114,9 @@
                         @if (canRegister(invoice)) {
                             <button pButton type="button" label="Registrar pago" icon="pi pi-credit-card" class="p-button-text" (click)="openRegisterDialog(invoice)"></button>
                         }
+                        @if (canDownloadReceipt(invoice)) {
+                            <button pButton type="button" label="Comprobante" icon="pi pi-file-pdf" class="p-button-text" [loading]="downloadingReceiptId() === invoice.id" (click)="downloadReceipt(invoice)"></button>
+                        }
                         <button pButton type="button" label="Ver pagos" icon="pi pi-list" class="p-button-text" (click)="openPaymentsDialog(invoice)"></button>
                     </td>
                 </tr>
