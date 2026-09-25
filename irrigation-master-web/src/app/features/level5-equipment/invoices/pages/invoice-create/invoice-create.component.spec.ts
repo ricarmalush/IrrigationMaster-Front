@@ -113,8 +113,8 @@ describe('InvoiceCreateComponent', () => {
             organizationId: 'org-1',
             issueDate: new Date(2026, 0, 1),
             dueDateDays: 30,
-            totalAmountValue: 149.99,
-            totalAmountCurrency: 'EUR'
+            taxableBaseValue: 149.99,
+            taxableBaseCurrency: 'EUR'
         });
     }
 
@@ -162,8 +162,8 @@ describe('InvoiceCreateComponent', () => {
             organizationId: 'org-1',
             issueDate: '2026-01-01T00:00:00',
             dueDate: '2026-01-31T00:00:00',
-            totalAmountValue: 149.99,
-            totalAmountCurrency: 'EUR',
+            taxableBaseValue: 149.99,
+            taxableBaseCurrency: 'EUR',
             userId: null,
             assignedLicenseId: null
         });

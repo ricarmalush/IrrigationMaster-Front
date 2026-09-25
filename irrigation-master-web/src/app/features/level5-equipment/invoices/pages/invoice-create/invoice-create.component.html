@@ -85,17 +85,17 @@
             </div>
 
             <div class="flex flex-col gap-2">
-                <label for="totalAmountValue" class="text-sm font-semibold">Importe</label>
-                <p-inputnumber id="totalAmountValue" formControlName="totalAmountValue" mode="decimal" [minFractionDigits]="2" [min]="0.01" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
-                @if (form.controls.totalAmountValue.invalid && form.controls.totalAmountValue.touched) {
-                    <small class="text-red-500 text-sm">El importe debe ser mayor que 0.</small>
+                <label for="taxableBaseValue" class="text-sm font-semibold">Base imponible (sin IVA)</label>
+                <p-inputnumber id="taxableBaseValue" formControlName="taxableBaseValue" mode="decimal" [minFractionDigits]="2" [min]="0.01" styleClass="w-full" inputStyleClass="w-full"></p-inputnumber>
+                @if (form.controls.taxableBaseValue.invalid && form.controls.taxableBaseValue.touched) {
+                    <small class="text-red-500 text-sm">La base imponible debe ser mayor que 0.</small>
                 }
             </div>
 
             <div class="flex flex-col gap-2">
-                <label for="totalAmountCurrency" class="text-sm font-semibold">Moneda</label>
-                <input pInputText id="totalAmountCurrency" formControlName="totalAmountCurrency" maxlength="3" class="w-full" placeholder="EUR" />
-                @if (form.controls.totalAmountCurrency.invalid && form.controls.totalAmountCurrency.touched) {
+                <label for="taxableBaseCurrency" class="text-sm font-semibold">Moneda</label>
+                <input pInputText id="taxableBaseCurrency" formControlName="taxableBaseCurrency" maxlength="3" class="w-full" placeholder="EUR" />
+                @if (form.controls.taxableBaseCurrency.invalid && form.controls.taxableBaseCurrency.touched) {
                     <small class="text-red-500 text-sm">La moneda es obligatoria.</small>
                 }
             </div>

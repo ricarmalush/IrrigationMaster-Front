@@ -82,8 +82,8 @@ export class InvoiceCreateComponent implements OnInit {
         assignedLicenseId: [''],
         issueDate: this.fb.nonNullable.control<Date>(new Date(), Validators.required),
         dueDateDays: this.fb.nonNullable.control<number>(30, Validators.required),
-        totalAmountValue: [0, [Validators.required, Validators.min(0.01)]],
-        totalAmountCurrency: ['EUR', Validators.required]
+        taxableBaseValue: [0, [Validators.required, Validators.min(0.01)]],
+        taxableBaseCurrency: ['EUR', Validators.required]
     });
 
     // Fecha de vencimiento resultante, solo lectura: issueDate + dueDateDays, recalculada al vuelo
@@ -160,8 +160,8 @@ export class InvoiceCreateComponent implements OnInit {
                 organizationId: value.organizationId,
                 issueDate: this.toDateTimeString(value.issueDate),
                 dueDate: this.toDateTimeString(this.dueDate()),
-                totalAmountValue: value.totalAmountValue,
-                totalAmountCurrency: value.totalAmountCurrency,
+                taxableBaseValue: value.taxableBaseValue,
+                taxableBaseCurrency: value.taxableBaseCurrency,
                 userId: isIndividual ? value.userId : null,
                 assignedLicenseId: value.assignedLicenseId || null
             })

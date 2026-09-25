@@ -113,8 +113,8 @@ describe('InvoiceService', () => {
             organizationId: 'org-1',
             issueDate: '2026-01-01T00:00:00',
             dueDate: '2026-01-31T00:00:00',
-            totalAmountValue: 149.99,
-            totalAmountCurrency: 'EUR'
+            taxableBaseValue: 149.99,
+            taxableBaseCurrency: 'EUR'
         };
 
         it('POSTs to Create and resolves the new id on success', () => {
