@@ -19,7 +19,7 @@ import { AssignedLicenseService } from '../../../../level2-structure/assigned-li
 import { LicenceTypeService } from '../../../../level1-core/licence-types/services/licence-type.service';
 import { OrganizationService } from '../../../../level2-structure/organizations/services/organization.service';
 import { UserService } from '../../../../level3-functional/users/services/user.service';
-import { Invoice, InvoiceStatus } from '../../../../../shared/models/invoice.model';
+import { Invoice, InvoiceChainVerificationResult, InvoiceStatus } from '../../../../../shared/models/invoice.model';
 import { Payment, PaymentMethod, PaymentStatus } from '../../../../../shared/models/payment.model';
 import { PaymentService } from '../../../payments/services/payment.service';
 import { InvoiceService } from '../../services/invoice.service';
@@ -134,6 +134,12 @@ export class InvoiceListComponent implements OnInit {
     readonly bulkConfirming = signal(false);
     readonly sendingMonthlySummary = signal(false);
     readonly downloadingMonthlyReport = signal(false);
+
+    // Verificación de la cadena de huellas (RD 1007/2023) -- exclusivo SUPERADMIN, de toda la
+    // plataforma, no de una organización, así que no hay filtro previo que aplicar.
+    readonly verifyingChain = signal(false);
+    readonly chainVerificationDialogVisible = signal(false);
+    readonly chainVerificationResult = signal<InvoiceChainVerificationResult | null>(null);
 
     // "Informe de auditoría de pagos" (SUPERADMIN): mismo bulkOrganizationId ya existente, con un
     // rango de fechas propio en un diálogo, ya que aquí sí hace falta cubrir varios meses de una
@@ -513,6 +519,28 @@ export class InvoiceListComponent implements OnInit {
             }
 
             this.triggerDownload(result.data, `informe-mensual-${organizationId}-${now.getFullYear()}-${now.getMonth() + 1}.pdf`);
+        });
+    }
+
+    // Comprobación "de un vistazo" de que la cadena de huellas no se ha roto -- ver
+    // InvoiceChainVerificationService en el backend. Sin filtros ni organización: recorre TODA la
+    // plataforma en una sola llamada.
+    verifyChain(): void {
+        if (!this.isSuperAdmin) {
+            return;
+        }
+
+        this.verifyingChain.set(true);
+        this.invoiceService.verifyChain().subscribe((result) => {
+            this.verifyingChain.set(false);
+
+            if (!result.isSuccess || !result.data) {
+                this.messageService.add({ severity: 'error', summary: 'No se pudo verificar la cadena', detail: result.message });
+                return;
+            }
+
+            this.chainVerificationResult.set(result.data);
+            this.chainVerificationDialogVisible.set(true);
         });
     }
 

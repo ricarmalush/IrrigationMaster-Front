@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 
 import { CurrentSessionService } from '../../../../../core/services/current-session';
 import { AssignedLicense } from '../../../../../shared/models/assigned-license.model';
-import { Invoice, InvoiceStatus } from '../../../../../shared/models/invoice.model';
+import { Invoice, InvoiceChainVerificationResult, InvoiceStatus } from '../../../../../shared/models/invoice.model';
 import { LicenceType } from '../../../../../shared/models/licence-type.model';
 import { Organization } from '../../../../../shared/models/organization.model';
 import { ConfirmAllPendingPaymentsResult, Payment } from '../../../../../shared/models/payment.model';
@@ -118,7 +118,7 @@ describe('InvoiceListComponent', () => {
     let confirmationService: jasmine.SpyObj<ConfirmationService>;
 
     function setup(role: string | null): void {
-        invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel', 'sendMonthlySummary', 'downloadMonthlyReport', 'downloadAuditReport']);
+        invoiceService = jasmine.createSpyObj('InvoiceService', ['listMine', 'listAll', 'create', 'issue', 'cancel', 'sendMonthlySummary', 'downloadMonthlyReport', 'downloadAuditReport', 'verifyChain']);
         invoiceService.listMine.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         invoiceService.listAll.and.returnValue(of<ListResult<Invoice>>({ isSuccess: true, message: 'ok', items: [], totalCount: 0 }));
         paymentService = jasmine.createSpyObj('PaymentService', ['listByInvoice', 'register', 'confirm', 'revert', 'deletePending', 'confirmAllPendingForCurrentMonth']);
@@ -821,6 +821,52 @@ describe('InvoiceListComponent', () => {
 
             expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No autorizado.' }));
             expect(component.auditReportDialogVisible()).toBe(true);
+        });
+    });
+
+    describe('verifyChain()', () => {
+        it('no hace nada si no es SUPERADMIN', () => {
+            setup('PRESIDENTE');
+
+            component.verifyChain();
+
+            expect(invoiceService.verifyChain).not.toHaveBeenCalled();
+        });
+
+        it('en éxito con cadena íntegra, abre el diálogo con el resultado', () => {
+            setup('SUPERADMIN');
+            const data: InvoiceChainVerificationResult = { invoicesChecked: 3, isIntact: true, breaks: [] };
+            invoiceService.verifyChain.and.returnValue(of<OperationResult<InvoiceChainVerificationResult>>({ isSuccess: true, message: 'ok', data }));
+
+            component.verifyChain();
+
+            expect(component.chainVerificationDialogVisible()).toBe(true);
+            expect(component.chainVerificationResult()).toEqual(data);
+            expect(component.verifyingChain()).toBe(false);
+        });
+
+        it('en éxito con roturas detectadas, expone las roturas en el resultado', () => {
+            setup('SUPERADMIN');
+            const data: InvoiceChainVerificationResult = {
+                invoicesChecked: 2,
+                isIntact: false,
+                breaks: [{ invoiceNumber: 'INV-0002', reason: 'La huella no coincide.' }]
+            };
+            invoiceService.verifyChain.and.returnValue(of<OperationResult<InvoiceChainVerificationResult>>({ isSuccess: true, message: 'ok', data }));
+
+            component.verifyChain();
+
+            expect(component.chainVerificationResult()?.breaks.length).toBe(1);
+        });
+
+        it('en fallo (p. ej. sin permiso), muestra un toast de error y no abre el diálogo', () => {
+            setup('SUPERADMIN');
+            invoiceService.verifyChain.and.returnValue(of<OperationResult<InvoiceChainVerificationResult>>({ isSuccess: false, message: 'No autorizado.' }));
+
+            component.verifyChain();
+
+            expect(messageService.add).toHaveBeenCalledWith(jasmine.objectContaining({ severity: 'error', detail: 'No autorizado.' }));
+            expect(component.chainVerificationDialogVisible()).toBe(false);
         });
     });
 });

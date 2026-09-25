@@ -4,7 +4,7 @@ import { Observable, catchError, from, map, of, switchMap } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { extractErrorMessage, toListResult, toOperationResult } from '../../../../core/utils/http-result.util';
 import { ApiResponse, PagedApiResponse } from '../../../../shared/models/api-response.model';
-import { CreateInvoiceRequest, Invoice, InvoiceStatus } from '../../../../shared/models/invoice.model';
+import { CreateInvoiceRequest, Invoice, InvoiceChainVerificationResult, InvoiceStatus } from '../../../../shared/models/invoice.model';
 import { ListResult, OperationResult } from '../../../../shared/models/result.model';
 
 @Injectable({
@@ -38,6 +38,12 @@ export class InvoiceService {
 
     create(request: CreateInvoiceRequest): Observable<OperationResult<string>> {
         return toOperationResult(this.http.post<ApiResponse<string>>(`${this.apiUrl}/Create`, request));
+    }
+
+    // Verificación de la cadena de huellas encadenadas (RD 1007/2023) -- exclusivo SUPERADMIN en el
+    // backend. Sin parámetros: recorre TODA la plataforma, no una organización.
+    verifyChain(): Observable<OperationResult<InvoiceChainVerificationResult>> {
+        return toOperationResult(this.http.post<ApiResponse<InvoiceChainVerificationResult>>(`${this.apiUrl}/VerifyChain`, null));
     }
 
     issue(id: string): Observable<OperationResult<boolean>> {

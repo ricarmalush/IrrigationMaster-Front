@@ -34,6 +34,15 @@
                         [disabled]="!bulkOrganizationId()"
                         (click)="openAuditReportDialog()"
                     ></button>
+                    <button
+                        pButton
+                        type="button"
+                        label="Verificar cadena de huellas"
+                        icon="pi pi-verified"
+                        severity="secondary"
+                        [loading]="verifyingChain()"
+                        (click)="verifyChain()"
+                    ></button>
                 </div>
             }
             @if (canViewInvoices) {
@@ -229,5 +238,32 @@
     <div class="flex justify-end gap-3 mt-6">
         <button pButton type="button" label="Cancelar" severity="secondary" (click)="auditReportDialogVisible.set(false)"></button>
         <button pButton type="button" label="Generar PDF" [loading]="generatingAuditReport()" (click)="confirmAuditReport()"></button>
+    </div>
+</p-dialog>
+
+<p-dialog header="Verificación de la cadena de huellas" [(visible)]="chainVerificationDialogVisible" [modal]="true" [style]="{ width: '32rem' }">
+    @if (chainVerificationResult(); as result) {
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+                <p-tag [severity]="result.isIntact ? 'success' : 'danger'" [value]="result.isIntact ? 'Íntegra' : 'Rota'"></p-tag>
+                <span>{{ result.invoicesChecked }} factura(s) expedida(s) comprobada(s) en toda la plataforma.</span>
+            </div>
+
+            @if (!result.isIntact) {
+                <div class="flex flex-col gap-2">
+                    <span class="text-sm font-semibold text-red-500">Se detectaron {{ result.breaks.length }} rotura(s):</span>
+                    @for (chainBreak of result.breaks; track chainBreak.invoiceNumber) {
+                        <div class="p-3 border border-red-200 rounded surface-100">
+                            <div class="font-semibold">{{ chainBreak.invoiceNumber }}</div>
+                            <div class="text-sm">{{ chainBreak.reason }}</div>
+                        </div>
+                    }
+                    <span class="text-sm text-color-secondary">Registrado automáticamente en el registro de eventos del sistema (AnomalyDetected).</span>
+                </div>
+            }
+        </div>
+    }
+    <div class="flex justify-end mt-6">
+        <button pButton type="button" label="Cerrar" severity="secondary" (click)="chainVerificationDialogVisible.set(false)"></button>
     </div>
 </p-dialog>

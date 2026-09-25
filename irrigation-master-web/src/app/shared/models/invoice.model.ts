@@ -27,6 +27,19 @@ export interface Invoice {
     issuerAddress?: string;
 }
 
+// Espejo de InvoiceChainBreak/InvoiceChainVerificationResult (backend) -- resultado de
+// POST /Invoices/VerifyChain (huella encadenada, RD 1007/2023).
+export interface InvoiceChainBreak {
+    invoiceNumber: string;
+    reason: string;
+}
+
+export interface InvoiceChainVerificationResult {
+    invoicesChecked: number;
+    isIntact: boolean;
+    breaks: InvoiceChainBreak[];
+}
+
 export interface CreateInvoiceRequest {
     organizationId: string;
     issueDate: string;
