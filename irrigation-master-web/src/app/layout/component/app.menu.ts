@@ -112,7 +112,10 @@ export class AppMenu {
         },
         {
             label: 'Sistema',
-            items: [{ label: 'Configuración del Sistema', icon: 'pi pi-fw pi-cog', routerLink: ['/system-settings'] }]
+            items: [
+                { label: 'Configuración del Sistema', icon: 'pi pi-fw pi-cog', routerLink: ['/system-settings'] },
+                { label: 'Eventos del Sistema', icon: 'pi pi-fw pi-history', routerLink: ['/system-events'] }
+            ]
         },
         {
             label: 'Facturación',

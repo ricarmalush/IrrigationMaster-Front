@@ -86,6 +86,10 @@ export const appRoutes: Routes = [
                 path: 'system-settings/holidays/:id',
                 loadComponent: () => import('./app/features/level1-core/holiday-calendars/pages/holiday-form/holiday-form.component').then((c) => c.HolidayFormComponent)
             },
+            {
+                path: 'system-events',
+                loadComponent: () => import('./app/features/level5-equipment/system-events/pages/system-event-list/system-event-list.component').then((c) => c.SystemEventListComponent)
+            },
 
             // PLATAFORMA (back-office SUPERADMIN, cross-tenant)
             { path: 'licence-types', loadComponent: () => import('./app/features/level1-core/licence-types/pages/licence-list/licence-list.component').then((c) => c.LicenceListComponent) },
